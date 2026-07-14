@@ -13,7 +13,7 @@ struct CoursesView: View {
         List {
             ForEach(filtered) { course in
                 NavigationLink {
-                    CourseDetailView(course: course)
+                    CourseDetailView(courseID: course.id)
                 } label: {
                     CourseRow(course: course)
                 }
@@ -21,7 +21,9 @@ struct CoursesView: View {
                 .listRowBackground(Color.clear)
                 .swipeActions {
                     Button(role: .destructive) {
-                        if let index = filtered.firstIndex(where: { $0.id == course.id }) { store.deleteCourses(at: IndexSet(integer: index), from: filtered) }
+                        if let index = filtered.firstIndex(where: { $0.id == course.id }) {
+                            store.deleteCourses(at: IndexSet(integer: index), from: filtered)
+                        }
                     } label: { Label("Elimina", systemImage: "trash") }
                 }
             }
@@ -40,7 +42,11 @@ struct CoursesView: View {
 }
 
 private struct CourseRow: View {
+    @EnvironmentObject var store: AppStore
     let course: DanceCourse
+
+    private var enrolled: Int { store.enrolledCount(for: course.id) }
+
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: "figure.dance")
@@ -52,10 +58,10 @@ private struct CourseRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(course.title).font(.headline)
                 Text("\(course.day) • \(course.time) • \(course.room)").font(.caption).foregroundStyle(.secondary)
-                ProgressView(value: Double(course.enrolled), total: Double(course.capacity)).tint(Color.dzPurple)
+                ProgressView(value: Double(enrolled), total: Double(max(course.capacity, 1))).tint(Color.dzPurple)
             }
             Spacer()
-            Text("\(course.enrolled)/\(course.capacity)").font(.caption.bold()).foregroundStyle(.secondary)
+            Text("\(enrolled)/\(course.capacity)").font(.caption.bold()).foregroundStyle(.secondary)
         }
         .padding(14)
         .background(Color(uiColor: .secondarySystemBackground))
@@ -65,38 +71,70 @@ private struct CourseRow: View {
 }
 
 struct CourseDetailView: View {
-    let course: DanceCourse
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                ZStack {
-                    BrandGradient()
-                    Image(systemName: "figure.dance").font(.system(size: 64)).foregroundStyle(.white.opacity(0.95))
-                }
-                .frame(height: 210)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+    @EnvironmentObject var store: AppStore
+    let courseID: UUID
 
-                DZCard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text(course.title).font(.title2.bold())
-                        Label(course.teacher, systemImage: "person.fill")
-                        Label("\(course.day) alle \(course.time)", systemImage: "calendar")
-                        Label(course.room, systemImage: "door.left.hand.open")
-                        Label("\(course.enrolled) iscritti su \(course.capacity)", systemImage: "person.3.fill")
+    private var course: DanceCourse? { store.courses.first { $0.id == courseID } }
+    private var enrolledStudents: [Student] { store.studentsForCourse(courseID) }
+
+    var body: some View {
+        Group {
+            if let course {
+                ScrollView {
+                    VStack(spacing: 18) {
+                        ZStack {
+                            BrandGradient()
+                            Image(systemName: "figure.dance").font(.system(size: 64)).foregroundStyle(.white.opacity(0.95))
+                        }
+                        .frame(height: 210)
+                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+
+                        DZCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text(course.title).font(.title2.bold())
+                                Label(course.teacher, systemImage: "person.fill")
+                                Label("\(course.day) alle \(course.time)", systemImage: "calendar")
+                                Label(course.room, systemImage: "door.left.hand.open")
+                                Label("\(enrolledStudents.count) iscritti su \(course.capacity)", systemImage: "person.3.fill")
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        DZCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Allievi iscritti").font(.headline)
+                                if enrolledStudents.isEmpty {
+                                    VStack(spacing: 8) { Image(systemName: "person.crop.circle.badge.plus").font(.largeTitle).foregroundStyle(.secondary); Text("Nessun allievo").font(.headline); Text("Assegna gli allievi a questo corso dalla sezione Allievi.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center) }.frame(maxWidth: .infinity).padding(.vertical, 20)
+                                } else {
+                                    ForEach(enrolledStudents) { student in
+                                        HStack {
+                                            Image(systemName: "person.crop.circle.fill").foregroundStyle(Color.dzPurple)
+                                            Text(student.name)
+                                            Spacer()
+                                            Text("\(student.age) anni").font(.caption).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        NavigationLink { OwnerAttendanceView(initialCourseID: course.id) } label: {
+                            Text("Apri registro presenze").frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.dzPurple)
+                        .controlSize(.large)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
                 }
-                NavigationLink { OwnerAttendanceView() } label: { Text("Apri registro presenze").frame(maxWidth: .infinity) }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color.dzPurple)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
+                .background(Color(uiColor: .systemGroupedBackground))
+                .navigationTitle(course.title)
+                .navigationBarTitleDisplayMode(.inline)
+            } else {
+                VStack(spacing: 10) { Image(systemName: "exclamationmark.triangle").font(.largeTitle); Text("Corso non disponibile").font(.headline) }.foregroundStyle(.secondary)
             }
-            .padding()
         }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle(course.title)
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -106,9 +144,13 @@ struct AddCourseView: View {
     @State private var title = ""
     @State private var teacher = ""
     @State private var day = "Lunedì"
-    @State private var time = "17:00"
+    @State private var lessonTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
     @State private var room = "Sala 1"
     @State private var capacity = 20
+
+    private var formattedTime: String {
+        lessonTime.formatted(date: .omitted, time: .shortened)
+    }
 
     var body: some View {
         NavigationStack {
@@ -117,9 +159,10 @@ struct AddCourseView: View {
                     TextField("Nome corso", text: $title)
                     TextField("Insegnante", text: $teacher)
                     Picker("Giorno", selection: $day) {
-                        ForEach(["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"], id: \.self) { Text($0) }
+                        ForEach(["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"], id: \.self) { Text($0) }
                     }
-                    TextField("Orario", text: $time)
+                    DatePicker("Orario", selection: $lessonTime, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(.compact)
                     TextField("Sala", text: $room)
                     Stepper("Capienza: \(capacity)", value: $capacity, in: 5...100)
                 }
@@ -129,7 +172,16 @@ struct AddCourseView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Salva") {
-                        store.addCourse(DanceCourse(title: title.isEmpty ? "Nuovo corso" : title, teacher: teacher.isEmpty ? "Da assegnare" : teacher, day: day, time: time, room: room, enrolled: 0, capacity: capacity, style: "Danza"))
+                        store.addCourse(DanceCourse(
+                            title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Nuovo corso" : title,
+                            teacher: teacher.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Da assegnare" : teacher,
+                            day: day,
+                            time: formattedTime,
+                            room: room.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Sala 1" : room,
+                            enrolled: 0,
+                            capacity: capacity,
+                            style: "Danza"
+                        ))
                         dismiss()
                     }
                 }

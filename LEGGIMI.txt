@@ -1,14 +1,13 @@
-DanzUp 1.0 — Build 12
+DanzUp – Build 13
+Compatibile con Xcode 15 e iOS 16.
 
-Compatibilità: Xcode 15, iOS 16 o successivo.
+Novità:
+- Conteggio iscritti ai corsi calcolato dagli allievi realmente assegnati.
+- Registro presenze filtrato sul corso selezionato, senza mostrare allievi di altri corsi.
+- Creazione allievo con menu dei corsi già creati.
+- Data di nascita con calendario e calcolo automatico dell'età.
+- Orario del corso con selettore orologio.
+- Dettaglio corso con elenco reale degli iscritti.
+- Navigazione diretta al registro del corso corretto.
 
-Novità principali:
-- navigazione iniziale semplificata per ridurre blocchi e accessi errati;
-- salvataggio locale automatico di corsi, allievi, quote, certificati, comunicazioni e presenze;
-- registro presenze persistente;
-- centro Stabilità e diagnostica;
-- ripristino sicuro dei dati dimostrativi;
-- collegamenti piano e ripristino acquisti interattivi;
-- controlli aggiuntivi sulle modifiche e sulle eliminazioni.
-
-Database e abbonamenti Apple reali non sono ancora attivi.
+Aprire DanzUp.xcodeproj, scegliere il proprio Team e avviare Run.

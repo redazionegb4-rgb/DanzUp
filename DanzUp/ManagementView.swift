@@ -69,43 +69,72 @@ private struct ManagementTile: View {
 
 struct OwnerAttendanceView: View {
     @EnvironmentObject var store: AppStore
-    @State private var selectedCourse = "Hip Hop Teen"
+    @State private var selectedCourseID: UUID?
     @State private var showSaved = false
 
+    init(initialCourseID: UUID? = nil) {
+        _selectedCourseID = State(initialValue: initialCourseID)
+    }
+
+    private var selectedCourse: DanceCourse? {
+        guard let selectedCourseID else { return nil }
+        return store.courses.first { $0.id == selectedCourseID }
+    }
+
     private var visibleStudents: [Student] {
-        let matches = store.students.filter { $0.course == selectedCourse }
-        return matches.isEmpty ? store.students : matches
+        guard let selectedCourseID else { return [] }
+        return store.studentsForCourse(selectedCourseID)
     }
 
     var body: some View {
         List {
             Section("Lezione") {
-                Picker("Corso", selection: $selectedCourse) {
-                    ForEach(store.courses.map(\.title), id: \.self) { Text($0) }
+                Picker("Corso", selection: $selectedCourseID) {
+                    Text("Seleziona corso").tag(UUID?.none)
+                    ForEach(store.courses) { course in
+                        Text(course.title).tag(Optional(course.id))
+                    }
                 }
                 Label("Le modifiche vengono salvate automaticamente", systemImage: "checkmark.icloud.fill")
                     .font(.caption).foregroundColor(.secondary)
             }
+
             Section("Registro presenze") {
-                ForEach(visibleStudents) { student in
-                    Button {
-                        store.toggleAttendance(studentID: student.id, courseTitle: selectedCourse)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(student.name).foregroundColor(.primary)
-                                Text(student.course).font(.caption).foregroundColor(.secondary)
+                if selectedCourseID == nil {
+                    Text("Seleziona un corso per aprire il registro.").foregroundColor(.secondary)
+                } else if visibleStudents.isEmpty {
+                    VStack(spacing: 8) { Image(systemName: "person.2.slash").font(.largeTitle).foregroundColor(.secondary); Text("Nessun allievo iscritto").font(.headline); Text("Assegna prima gli allievi a questo corso.").font(.caption).foregroundColor(.secondary) }.frame(maxWidth: .infinity).padding(.vertical, 16)
+                } else if let course = selectedCourse {
+                    ForEach(visibleStudents) { student in
+                        Button {
+                            store.toggleAttendance(studentID: student.id, courseTitle: course.title)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(student.name).foregroundColor(.primary)
+                                    Text(course.title).font(.caption).foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: store.isPresent(studentID: student.id, courseTitle: course.title) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(store.isPresent(studentID: student.id, courseTitle: course.title) ? .green : .secondary)
                             }
-                            Spacer()
-                            Image(systemName: store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? .green : .secondary)
                         }
                     }
                 }
             }
-            Section { Button("Conferma registro") { store.saveLocalData(); showSaved = true } }
+
+            if let course = selectedCourse {
+                Section("Riepilogo") {
+                    LabeledContent("Iscritti", value: "\(visibleStudents.count)/\(course.capacity)")
+                    LabeledContent("Presenti", value: "\(visibleStudents.filter { store.isPresent(studentID: $0.id, courseTitle: course.title) }.count)")
+                }
+                Section { Button("Conferma registro") { store.saveLocalData(); showSaved = true } }
+            }
         }
         .navigationTitle("Presenze")
+        .onAppear {
+            if selectedCourseID == nil { selectedCourseID = store.courses.first?.id }
+        }
         .alert("Registro salvato", isPresented: $showSaved) { Button("OK", role: .cancel) {} }
     }
 }

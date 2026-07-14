@@ -13,7 +13,7 @@ struct StudentsView: View {
         List {
             ForEach(filtered) { student in
                 NavigationLink {
-                    StudentDetailView(student: student)
+                    StudentDetailView(studentID: student.id)
                 } label: {
                     HStack(spacing: 14) {
                         Text(initials(student.name))
@@ -34,7 +34,11 @@ struct StudentsView: View {
                     .padding(.vertical, 5)
                 }
                 .swipeActions {
-                    Button(role: .destructive) { if let index = filtered.firstIndex(where: { $0.id == student.id }) { store.deleteStudents(at: IndexSet(integer: index), from: filtered) } } label: { Label("Elimina", systemImage: "trash") }
+                    Button(role: .destructive) {
+                        if let index = filtered.firstIndex(where: { $0.id == student.id }) {
+                            store.deleteStudents(at: IndexSet(integer: index), from: filtered)
+                        }
+                    } label: { Label("Elimina", systemImage: "trash") }
                 }
             }
         }
@@ -60,31 +64,41 @@ private struct StatusPill: View {
 }
 
 struct StudentDetailView: View {
-    let student: Student
+    @EnvironmentObject var store: AppStore
+    let studentID: UUID
+
+    private var student: Student? { store.students.first { $0.id == studentID } }
+
     var body: some View {
-        List {
-            Section {
-                HStack(spacing: 16) {
-                    Image(systemName: "person.crop.circle.fill").font(.system(size: 64)).foregroundStyle(Color.dzPurple)
-                    VStack(alignment: .leading) {
-                        Text(student.name).font(.title2.bold())
-                        Text("\(student.age) anni • \(student.course)").foregroundStyle(.secondary)
+        Group {
+            if let student {
+                List {
+                    Section {
+                        HStack(spacing: 16) {
+                            Image(systemName: "person.crop.circle.fill").font(.system(size: 64)).foregroundStyle(Color.dzPurple)
+                            VStack(alignment: .leading) {
+                                Text(student.name).font(.title2.bold())
+                                Text("\(student.age) anni • \(student.course)").foregroundStyle(.secondary)
+                            }
+                        }.padding(.vertical, 8)
                     }
-                }.padding(.vertical, 8)
-            }
-            Section("Situazione") {
-                LabeledContent("Pagamento", value: student.paymentStatus.rawValue)
-                LabeledContent("Certificato", value: student.medicalStatus.rawValue)
-                LabeledContent("Presenze", value: "\(student.attendanceRate)%")
-            }
-            Section("Azioni rapide") {
-                NavigationLink { PaymentsManagementView(initialFilter: student.paymentStatus == .late ? "Scadute" : "Tutte") } label: { Label("Registra pagamento", systemImage: "eurosign.circle") }
-                NavigationLink { OwnerAttendanceView() } label: { Label("Segna presenza", systemImage: "checkmark.circle") }
-                NavigationLink { CommunicationsManagementView(openComposerOnAppear: true) } label: { Label("Invia comunicazione", systemImage: "paperplane") }
-                NavigationLink { MedicalCertificatesView(showOnlyAlerts: false) } label: { Label("Gestisci certificato", systemImage: "cross.case.fill") }
+                    Section("Situazione") {
+                        LabeledContent("Pagamento", value: student.paymentStatus.rawValue)
+                        LabeledContent("Certificato", value: student.medicalStatus.rawValue)
+                        LabeledContent("Presenze", value: "\(student.attendanceRate)%")
+                    }
+                    Section("Azioni rapide") {
+                        NavigationLink { PaymentsManagementView(initialFilter: student.paymentStatus == .late ? "Scadute" : "Tutte") } label: { Label("Registra pagamento", systemImage: "eurosign.circle") }
+                        NavigationLink { OwnerAttendanceView(initialCourseID: store.courseID(named: student.course)) } label: { Label("Segna presenza", systemImage: "checkmark.circle") }
+                        NavigationLink { CommunicationsManagementView(openComposerOnAppear: true) } label: { Label("Invia comunicazione", systemImage: "paperplane") }
+                        NavigationLink { MedicalCertificatesView(showOnlyAlerts: false) } label: { Label("Gestisci certificato", systemImage: "cross.case.fill") }
+                    }
+                }
+                .navigationTitle("Scheda allievo")
+            } else {
+                VStack(spacing: 10) { Image(systemName: "person.crop.circle.badge.exclamationmark").font(.largeTitle); Text("Allievo non disponibile").font(.headline) }.foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("Scheda allievo")
     }
 }
 
@@ -92,24 +106,58 @@ struct AddStudentView: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
     @State private var name = ""
-    @State private var course = ""
-    @State private var age = 12
+    @State private var selectedCourseID: UUID?
+    @State private var birthDate = Calendar.current.date(byAdding: .year, value: -12, to: Date()) ?? Date()
+
+    private var age: Int {
+        max(3, Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Nome e cognome", text: $name)
-                TextField("Corso", text: $course)
-                Stepper("Età: \(age)", value: $age, in: 3...99)
+                Section("Dati allievo") {
+                    TextField("Nome e cognome", text: $name)
+                    DatePicker("Data di nascita", selection: $birthDate, in: ...Date(), displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                    LabeledContent("Età", value: "\(age) anni")
+                }
+
+                Section("Corso") {
+                    if store.courses.isEmpty {
+                        Label("Prima crea almeno un corso", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    } else {
+                        Picker("Assegna al corso", selection: $selectedCourseID) {
+                            Text("Seleziona un corso").tag(UUID?.none)
+                            ForEach(store.courses) { course in
+                                Text("\(course.title) • \(course.day) \(course.time)").tag(Optional(course.id))
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle("Nuovo allievo")
+            .onAppear {
+                if selectedCourseID == nil { selectedCourseID = store.courses.first?.id }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Salva") {
-                        store.addStudent(Student(name: name.isEmpty ? "Nuovo allievo" : name, course: course.isEmpty ? "Da assegnare" : course, age: age, paymentStatus: .due, medicalStatus: .expiring, attendanceRate: 0))
+                        guard let courseID = selectedCourseID,
+                              let course = store.courses.first(where: { $0.id == courseID }) else { return }
+                        store.addStudent(Student(
+                            name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Nuovo allievo" : name,
+                            course: course.title,
+                            age: age,
+                            paymentStatus: .due,
+                            medicalStatus: .expiring,
+                            attendanceRate: 0
+                        ))
                         dismiss()
                     }
+                    .disabled(store.courses.isEmpty || selectedCourseID == nil)
                 }
             }
         }

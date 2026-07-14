@@ -15,7 +15,7 @@ final class AppStore: ObservableObject {
     @Published var attendanceByCourse: [String: Set<UUID>] = [:]
     @Published var lastSavedAt: Date?
 
-    private let persistenceKey = "DanzUp.LocalData.v12"
+    private let persistenceKey = "DanzUp.LocalData.v13"
     private var isRestoring = false
 
     init() {
@@ -57,6 +57,20 @@ final class AppStore: ObservableObject {
         guard !cleanTitle.isEmpty, !cleanBody.isEmpty else { return }
         announcements.insert(Announcement(title: cleanTitle, body: cleanBody, audience: audience), at: 0)
         saveLocalData()
+    }
+
+
+    func courseID(named title: String) -> UUID? {
+        courses.first(where: { $0.title == title })?.id
+    }
+
+    func studentsForCourse(_ courseID: UUID) -> [Student] {
+        guard let title = courses.first(where: { $0.id == courseID })?.title else { return [] }
+        return students.filter { $0.course == title }
+    }
+
+    func enrolledCount(for courseID: UUID) -> Int {
+        studentsForCourse(courseID).count
     }
 
     func addCourse(_ course: DanceCourse) {
