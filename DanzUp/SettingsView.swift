@@ -63,7 +63,7 @@ private struct OwnerSettingsView: View {
                 Toggle(isOn: $notificationsEnabled) { Label("Notifiche", systemImage: "bell.fill") }
             }
 
-            CommonInformationSection(build: "12")
+            CommonInformationSection(build: "25")
             LogoutSection()
         }
         .navigationTitle("Scuola")
@@ -94,8 +94,8 @@ private struct StaffProfileView: View {
             }
 
             Section("Account") {
-                Label("Modifica dati personali", systemImage: "person.crop.circle.badge.pencil")
-                Label("Cambia password", systemImage: "key.fill")
+                NavigationLink { EditableProfileView(title: "Dati personali") } label: { Label("Modifica dati personali", systemImage: "person.crop.circle.badge.pencil") }
+                NavigationLink { ChangePasswordView() } label: { Label("Cambia password", systemImage: "key.fill") }
                 Toggle(isOn: $notificationsEnabled) { Label("Notifiche", systemImage: "bell.fill") }
                 Picker("Aspetto", selection: $store.appearance) {
                     ForEach(AppAppearance.allCases) { Text($0.rawValue).tag($0) }
@@ -108,7 +108,7 @@ private struct StaffProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "12")
+            CommonInformationSection(build: "25")
             LogoutSection()
         }
         .navigationTitle("Profilo")
@@ -142,14 +142,14 @@ private struct FamilyProfileView: View {
                         Spacer()
                         Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                     }
-                    Label("Collega un altro figlio", systemImage: "person.badge.plus")
+                    NavigationLink { LinkChildView() } label: { Label("Collega un altro figlio", systemImage: "person.badge.plus") }
                 }
             }
 
             Section("Account") {
-                Label("Dati personali", systemImage: "person.text.rectangle")
-                Label("Contatti di emergenza", systemImage: "phone.fill")
-                Label("Cambia password", systemImage: "key.fill")
+                NavigationLink { EditableProfileView(title: "Dati personali") } label: { Label("Dati personali", systemImage: "person.text.rectangle") }
+                NavigationLink { EmergencyContactsView() } label: { Label("Contatti di emergenza", systemImage: "phone.fill") }
+                NavigationLink { ChangePasswordView() } label: { Label("Cambia password", systemImage: "key.fill") }
                 Toggle(isOn: $notificationsEnabled) { Label("Notifiche", systemImage: "bell.fill") }
                 Picker("Aspetto", selection: $store.appearance) {
                     ForEach(AppAppearance.allCases) { Text($0.rawValue).tag($0) }
@@ -162,7 +162,7 @@ private struct FamilyProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "12")
+            CommonInformationSection(build: "25")
             LogoutSection()
         }
         .navigationTitle("Profilo")
@@ -198,8 +198,8 @@ private struct CommonInformationSection: View {
     var body: some View {
         Section("Informazioni") {
             NavigationLink { DiagnosticsView() } label: { Label("Stabilità e diagnostica", systemImage: "stethoscope") }
-            Label("Assistenza", systemImage: "questionmark.circle.fill")
-            Label("Privacy", systemImage: "hand.raised.fill")
+            NavigationLink { InfoPageView(title: "Assistenza", text: "Per assistenza su DanzUp contatta la tua scuola oppure il supporto DanzUp. Nella versione definitiva sarà disponibile il modulo di contatto online.", icon: "questionmark.circle.fill") } label: { Label("Assistenza", systemImage: "questionmark.circle.fill") }
+            NavigationLink { InfoPageView(title: "Privacy", text: "DanzUp protegge i dati di scuole, insegnanti, famiglie e allievi. La pagina legale definitiva verrà collegata prima della pubblicazione.", icon: "hand.raised.fill") } label: { Label("Privacy", systemImage: "hand.raised.fill") }
             LabeledContent("Versione", value: "1.0 • Build \(build)")
         }
     }
@@ -207,11 +207,14 @@ private struct CommonInformationSection: View {
 
 private struct LogoutSection: View {
     @EnvironmentObject var store: AppStore
+    @State private var confirmLogout = false
     var body: some View {
         Section {
-            Button(role: .destructive) { store.logout() } label: {
-                Label("Esci", systemImage: "rectangle.portrait.and.arrow.right")
-            }
+            Button(role: .destructive) { confirmLogout = true } label: { Label("Esci", systemImage: "rectangle.portrait.and.arrow.right") }
+        }
+        .confirmationDialog("Vuoi uscire da DanzUp?", isPresented: $confirmLogout, titleVisibility: .visible) {
+            Button("Esci", role: .destructive) { store.logout() }
+            Button("Annulla", role: .cancel) {}
         }
     }
 }
@@ -386,4 +389,40 @@ private struct PersonalAvailabilityView: View {
         }
         .navigationTitle("Disponibilità")
     }
+}
+
+
+private struct EditableProfileView: View {
+    let title: String
+    @State private var name = ""
+    @State private var surname = ""
+    @State private var email = ""
+    @State private var phone = ""
+    @State private var saved = false
+    var body: some View {
+        Form {
+            Section("Informazioni") { TextField("Nome", text: $name); TextField("Cognome", text: $surname); TextField("Email", text: $email).keyboardType(.emailAddress).textInputAutocapitalization(.never); TextField("Telefono", text: $phone).keyboardType(.phonePad) }
+            Section { Button("Salva modifiche") { saved = true } }
+        }.navigationTitle(title).alert("Modifiche salvate", isPresented: $saved) { Button("OK") {} }
+    }
+}
+
+private struct ChangePasswordView: View {
+    @State private var current = ""; @State private var newPassword = ""; @State private var confirm = ""; @State private var message = false
+    var body: some View { Form { Section("Sicurezza") { SecureField("Password attuale", text: $current); SecureField("Nuova password", text: $newPassword); SecureField("Conferma nuova password", text: $confirm) }; Section { Button("Aggiorna password") { message = true }.disabled(newPassword.count < 8 || newPassword != confirm) }; Section { Text("La password deve contenere almeno 8 caratteri.").font(.caption).foregroundColor(.secondary) } }.navigationTitle("Cambia password").alert("Password aggiornata", isPresented: $message) { Button("OK") {} } }
+}
+
+private struct EmergencyContactsView: View {
+    @State private var name = ""; @State private var relation = ""; @State private var phone = ""; @State private var saved = false
+    var body: some View { Form { Section("Contatto") { TextField("Nome e cognome", text: $name); TextField("Relazione", text: $relation); TextField("Telefono", text: $phone).keyboardType(.phonePad) }; Section { Button("Salva contatto") { saved = true } } }.navigationTitle("Contatto di emergenza").alert("Contatto salvato", isPresented: $saved) { Button("OK") {} } }
+}
+
+private struct LinkChildView: View {
+    @State private var code = ""; @State private var linked = false
+    var body: some View { Form { Section("Codice allievo") { TextField("Codice fornito dalla scuola", text: $code).textInputAutocapitalization(.characters); Text("Il collegamento dovrà essere confermato dalla scuola.").font(.caption).foregroundColor(.secondary) }; Section { Button("Collega profilo") { linked = true }.disabled(code.isEmpty) } }.navigationTitle("Collega un figlio").alert("Richiesta inviata", isPresented: $linked) { Button("OK") {} } }
+}
+
+private struct InfoPageView: View {
+    let title: String; let text: String; let icon: String
+    var body: some View { ScrollView { VStack(spacing: 20) { Image(systemName: icon).font(.system(size: 48)).foregroundColor(.dzPurple); Text(title).font(.largeTitle.bold()); Text(text).foregroundColor(.secondary).multilineTextAlignment(.center) }.padding(30) }.navigationTitle(title).navigationBarTitleDisplayMode(.inline) }
 }
