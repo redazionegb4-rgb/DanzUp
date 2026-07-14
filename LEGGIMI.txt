@@ -11,3 +11,8 @@ TEST
 Apri DanzUp.xcodeproj, seleziona il tuo Team e premi Run.
 Nella schermata iniziale usa “Apri accesso demo” per provare i diversi percorsi.
 Questa build usa dati locali: database e abbonamenti Apple verranno collegati nelle build successive.
+
+
+BUILD 7 FIX XCODE CLOUD
+- Sostituita navigationDestination(item:) non disponibile su iOS 16.
+- Corretto DZCard per compilazione Swift 5 / Xcode 15.

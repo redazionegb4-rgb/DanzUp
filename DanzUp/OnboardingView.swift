@@ -25,7 +25,18 @@ struct WelcomeView: View {
                     }.padding(20)
                 }
             }
-            .navigationDestination(item: $route) { route in AuthFlowView(route: route) }
+            .background {
+                NavigationLink(
+                    destination: Group {
+                        if let route { AuthFlowView(route: route) } else { EmptyView() }
+                    },
+                    isActive: Binding(
+                        get: { route != nil },
+                        set: { if !$0 { route = nil } }
+                    )
+                ) { EmptyView() }
+                .hidden()
+            }
         }
     }
 }
