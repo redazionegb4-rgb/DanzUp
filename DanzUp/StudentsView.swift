@@ -34,7 +34,7 @@ struct StudentsView: View {
                     .padding(.vertical, 5)
                 }
                 .swipeActions {
-                    Button(role: .destructive) { store.students.removeAll { $0.id == student.id } } label: { Label("Elimina", systemImage: "trash") }
+                    Button(role: .destructive) { if let index = filtered.firstIndex(where: { $0.id == student.id }) { store.deleteStudents(at: IndexSet(integer: index), from: filtered) } } label: { Label("Elimina", systemImage: "trash") }
                 }
             }
         }
@@ -107,7 +107,7 @@ struct AddStudentView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Salva") {
-                        store.students.append(Student(name: name.isEmpty ? "Nuovo allievo" : name, course: course.isEmpty ? "Da assegnare" : course, age: age, paymentStatus: .due, medicalStatus: .expiring, attendanceRate: 0))
+                        store.addStudent(Student(name: name.isEmpty ? "Nuovo allievo" : name, course: course.isEmpty ? "Da assegnare" : course, age: age, paymentStatus: .due, medicalStatus: .expiring, attendanceRate: 0))
                         dismiss()
                     }
                 }

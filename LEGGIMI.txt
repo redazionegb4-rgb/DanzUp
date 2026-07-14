@@ -1,16 +1,14 @@
-DanzUp 1.0 - Build 11
-Compatibile con Xcode 15 e iOS 16.
+DanzUp 1.0 — Build 12
+
+Compatibilità: Xcode 15, iOS 16 o successivo.
 
 Novità principali:
-- collegamenti reali dalle dashboard per tutti i ruoli;
-- filtri diretti per quote scadute e certificati da controllare;
-- registrazione e modifica dello stato dei pagamenti;
-- modifica dello stato dei certificati medici;
-- pubblicazione delle comunicazioni con aggiornamento immediato della lista;
-- azioni rapide della Home ora completamente cliccabili;
-- dettagli allievo collegati a pagamento, presenze, certificato e comunicazioni;
-- dettagli corso collegati al registro presenze;
-- area famiglia con presenze, quote, ricevute e certificato;
-- metriche della Home calcolate dai dati demo.
+- navigazione iniziale semplificata per ridurre blocchi e accessi errati;
+- salvataggio locale automatico di corsi, allievi, quote, certificati, comunicazioni e presenze;
+- registro presenze persistente;
+- centro Stabilità e diagnostica;
+- ripristino sicuro dei dati dimostrativi;
+- collegamenti piano e ripristino acquisti interattivi;
+- controlli aggiuntivi sulle modifiche e sulle eliminazioni.
 
-Nota: i dati sono ancora locali e dimostrativi. Database online, login reale e StoreKit verranno collegati nelle build successive.
+Database e abbonamenti Apple reali non sono ancora attivi.

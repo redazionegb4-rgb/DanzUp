@@ -21,6 +21,7 @@ private struct OwnerSettingsView: View {
     @EnvironmentObject var store: AppStore
     @State private var showPlans = false
     @State private var notificationsEnabled = true
+    @State private var showRestoreMessage = false
 
     var body: some View {
         List {
@@ -44,8 +45,8 @@ private struct OwnerSettingsView: View {
                         }
                     }
                 }
-                Label("Gestisci o cambia piano", systemImage: "creditcard.fill")
-                Label("Ripristina acquisti", systemImage: "arrow.clockwise")
+                Button { showPlans = true } label: { Label("Gestisci o cambia piano", systemImage: "creditcard.fill") }
+                Button { showRestoreMessage = true } label: { Label("Ripristina acquisti", systemImage: "arrow.clockwise") }
             }
 
             Section("Gestione scuola") {
@@ -62,11 +63,12 @@ private struct OwnerSettingsView: View {
                 Toggle(isOn: $notificationsEnabled) { Label("Notifiche", systemImage: "bell.fill") }
             }
 
-            CommonInformationSection(build: "11")
+            CommonInformationSection(build: "12")
             LogoutSection()
         }
         .navigationTitle("Scuola")
         .sheet(isPresented: $showPlans) { PlansView() }
+        .alert("Acquisti ripristinati", isPresented: $showRestoreMessage) { Button("OK", role: .cancel) {} } message: { Text("Nella build demo non ci sono ancora acquisti reali. Il collegamento StoreKit verrà attivato nella fase abbonamenti.") }
     }
 }
 
@@ -106,7 +108,7 @@ private struct StaffProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "11")
+            CommonInformationSection(build: "12")
             LogoutSection()
         }
         .navigationTitle("Profilo")
@@ -160,7 +162,7 @@ private struct FamilyProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "11")
+            CommonInformationSection(build: "12")
             LogoutSection()
         }
         .navigationTitle("Profilo")
@@ -195,6 +197,7 @@ private struct CommonInformationSection: View {
     let build: String
     var body: some View {
         Section("Informazioni") {
+            NavigationLink { DiagnosticsView() } label: { Label("Stabilità e diagnostica", systemImage: "stethoscope") }
             Label("Assistenza", systemImage: "questionmark.circle.fill")
             Label("Privacy", systemImage: "hand.raised.fill")
             LabeledContent("Versione", value: "1.0 • Build \(build)")
@@ -209,6 +212,42 @@ private struct LogoutSection: View {
             Button(role: .destructive) { store.logout() } label: {
                 Label("Esci", systemImage: "rectangle.portrait.and.arrow.right")
             }
+        }
+    }
+}
+
+struct DiagnosticsView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var showResetConfirmation = false
+    @State private var showSaved = false
+
+    var body: some View {
+        List {
+            Section("Stato app") {
+                Label("Dati locali disponibili", systemImage: "checkmark.circle.fill").foregroundColor(.green)
+                LabeledContent("Corsi caricati", value: "\(store.courses.count)")
+                LabeledContent("Allievi caricati", value: "\(store.students.count)")
+                LabeledContent("Comunicazioni", value: "\(store.announcements.count)")
+                if let date = store.lastSavedAt {
+                    LabeledContent("Ultimo salvataggio", value: date.formatted(date: .omitted, time: .shortened))
+                }
+            }
+            Section("Manutenzione") {
+                Button { store.saveLocalData(); showSaved = true } label: { Label("Salva ora", systemImage: "square.and.arrow.down.fill") }
+                if store.userRole == .owner {
+                    Button(role: .destructive) { showResetConfirmation = true } label: { Label("Ripristina dati dimostrativi", systemImage: "arrow.counterclockwise") }
+                }
+            }
+            Section {
+                Text("Questa build usa salvataggi locali protetti e navigazione semplificata. Quando un blocco si ripete, indica la schermata e l’azione eseguita immediatamente prima.")
+                    .font(.caption).foregroundColor(.secondary)
+            }
+        }
+        .navigationTitle("Diagnostica")
+        .alert("Dati salvati", isPresented: $showSaved) { Button("OK", role: .cancel) {} }
+        .confirmationDialog("Ripristinare tutti i dati demo?", isPresented: $showResetConfirmation, titleVisibility: .visible) {
+            Button("Ripristina", role: .destructive) { store.resetDemoData() }
+            Button("Annulla", role: .cancel) {}
         }
     }
 }

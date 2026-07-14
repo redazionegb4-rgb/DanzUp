@@ -12,7 +12,7 @@ enum UserRole: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-enum SubscriptionPlan: String, CaseIterable, Identifiable {
+enum SubscriptionPlan: String, CaseIterable, Identifiable, Codable {
     case base = "Base", pro = "Pro", premium = "Premium"
     var id: String { rawValue }
     var monthlyPrice: String { switch self { case .base: return "€9,99"; case .pro: return "€19,99"; case .premium: return "€34,99" } }
@@ -20,11 +20,11 @@ enum SubscriptionPlan: String, CaseIterable, Identifiable {
     var features: [String] { switch self { case .base: return ["Fino a 100 allievi", "Corsi e presenze", "Comunicazioni"]; case .pro: return ["Allievi illimitati", "Quote e documenti", "Saggi ed eventi"]; case .premium: return ["Più sedi", "Più amministratori", "Statistiche avanzate"] } }
 }
 
-enum AppAppearance: String, CaseIterable, Identifiable { case system = "Automatico", light = "Chiaro", dark = "Scuro"; var id: String { rawValue }; var colorScheme: ColorScheme? { switch self { case .system: return nil; case .light: return .light; case .dark: return .dark } } }
+enum AppAppearance: String, CaseIterable, Identifiable, Codable { case system = "Automatico", light = "Chiaro", dark = "Scuro"; var id: String { rawValue }; var colorScheme: ColorScheme? { switch self { case .system: return nil; case .light: return .light; case .dark: return .dark } } }
 
-struct DanceCourse: Identifiable { let id = UUID(); var title: String; var teacher: String; var day: String; var time: String; var room: String; var enrolled: Int; var capacity: Int; var style: String }
+struct DanceCourse: Identifiable, Codable { var id = UUID(); var title: String; var teacher: String; var day: String; var time: String; var room: String; var enrolled: Int; var capacity: Int; var style: String }
 
-enum PaymentStatus: String { case paid = "Pagata", due = "Da pagare", late = "Scaduta"; var color: Color { switch self { case .paid: return .green; case .due: return .orange; case .late: return .red } } }
-enum MedicalStatus: String { case valid = "Valido", expiring = "In scadenza", expired = "Scaduto"; var color: Color { switch self { case .valid: return .green; case .expiring: return .orange; case .expired: return .red } } }
-struct Student: Identifiable { let id = UUID(); var name: String; var course: String; var age: Int; var paymentStatus: PaymentStatus; var medicalStatus: MedicalStatus; var attendanceRate: Int }
-struct Announcement: Identifiable { let id = UUID(); var title: String; var body: String; var audience: String; var date = Date() }
+enum PaymentStatus: String, Codable { case paid = "Pagata", due = "Da pagare", late = "Scaduta"; var color: Color { switch self { case .paid: return .green; case .due: return .orange; case .late: return .red } } }
+enum MedicalStatus: String, Codable { case valid = "Valido", expiring = "In scadenza", expired = "Scaduto"; var color: Color { switch self { case .valid: return .green; case .expiring: return .orange; case .expired: return .red } } }
+struct Student: Identifiable, Codable { var id = UUID(); var name: String; var course: String; var age: Int; var paymentStatus: PaymentStatus; var medicalStatus: MedicalStatus; var attendanceRate: Int }
+struct Announcement: Identifiable, Codable { var id = UUID(); var title: String; var body: String; var audience: String; var date = Date() }

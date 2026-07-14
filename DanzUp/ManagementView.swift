@@ -70,7 +70,12 @@ private struct ManagementTile: View {
 struct OwnerAttendanceView: View {
     @EnvironmentObject var store: AppStore
     @State private var selectedCourse = "Hip Hop Teen"
-    @State private var present: Set<UUID> = []
+    @State private var showSaved = false
+
+    private var visibleStudents: [Student] {
+        let matches = store.students.filter { $0.course == selectedCourse }
+        return matches.isEmpty ? store.students : matches
+    }
 
     var body: some View {
         List {
@@ -78,13 +83,13 @@ struct OwnerAttendanceView: View {
                 Picker("Corso", selection: $selectedCourse) {
                     ForEach(store.courses.map(\.title), id: \.self) { Text($0) }
                 }
-                LabeledContent("Orario", value: "18:30 – 19:45")
-                LabeledContent("Sala", value: "Urban")
+                Label("Le modifiche vengono salvate automaticamente", systemImage: "checkmark.icloud.fill")
+                    .font(.caption).foregroundColor(.secondary)
             }
             Section("Registro presenze") {
-                ForEach(store.students) { student in
+                ForEach(visibleStudents) { student in
                     Button {
-                        if present.contains(student.id) { present.remove(student.id) } else { present.insert(student.id) }
+                        store.toggleAttendance(studentID: student.id, courseTitle: selectedCourse)
                     } label: {
                         HStack {
                             VStack(alignment: .leading) {
@@ -92,15 +97,16 @@ struct OwnerAttendanceView: View {
                                 Text(student.course).font(.caption).foregroundColor(.secondary)
                             }
                             Spacer()
-                            Image(systemName: present.contains(student.id) ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(present.contains(student.id) ? .green : .secondary)
+                            Image(systemName: store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? .green : .secondary)
                         }
                     }
                 }
             }
-            Section { Button("Salva registro") {} }
+            Section { Button("Conferma registro") { store.saveLocalData(); showSaved = true } }
         }
         .navigationTitle("Presenze")
+        .alert("Registro salvato", isPresented: $showSaved) { Button("OK", role: .cancel) {} }
     }
 }
 

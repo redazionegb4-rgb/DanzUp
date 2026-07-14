@@ -71,26 +71,46 @@ struct StaffCoursesView: View {
 
 struct AttendanceRegisterView: View {
     @EnvironmentObject var store: AppStore
-    @State private var present: Set<UUID> = []
+    @State private var selectedCourse = "Hip Hop Teen"
+    @State private var showSaved = false
+
+    private var visibleStudents: [Student] {
+        let matches = store.students.filter { $0.course == selectedCourse }
+        return matches.isEmpty ? store.students : matches
+    }
+
     var body: some View {
         List {
             Section("Lezione selezionata") {
-                Label("Hip Hop Teen • 18:30", systemImage: "figure.dance")
+                Picker("Corso", selection: $selectedCourse) {
+                    ForEach(store.courses.map(\.title), id: \.self) { Text($0) }
+                }
+                Label("Registro salvato automaticamente", systemImage: "checkmark.icloud.fill")
+                    .font(.caption).foregroundColor(.secondary)
             }
             Section("Registro") {
-                ForEach(store.students) { student in
+                ForEach(visibleStudents) { student in
                     Button {
-                        if present.contains(student.id) { present.remove(student.id) } else { present.insert(student.id) }
+                        store.toggleAttendance(studentID: student.id, courseTitle: selectedCourse)
                     } label: {
                         HStack {
-                            VStack(alignment: .leading) { Text(student.name).foregroundColor(.primary); Text(student.course).font(.caption).foregroundColor(.secondary) }
+                            VStack(alignment: .leading) {
+                                Text(student.name).foregroundColor(.primary)
+                                Text(student.course).font(.caption).foregroundColor(.secondary)
+                            }
                             Spacer()
-                            Image(systemName: present.contains(student.id) ? "checkmark.circle.fill" : "circle").foregroundColor(present.contains(student.id) ? .green : .secondary).font(.title3)
+                            Image(systemName: store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? .green : .secondary).font(.title3)
                         }
                     }
                 }
             }
-        }.navigationTitle("Presenze")
+            Section {
+                Button("Conferma registro") { store.saveLocalData(); showSaved = true }
+            }
+        }
+        .navigationTitle("Presenze")
+        .alert("Registro salvato", isPresented: $showSaved) { Button("OK", role: .cancel) {} }
     }
 }
 

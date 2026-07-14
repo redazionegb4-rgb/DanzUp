@@ -21,7 +21,7 @@ struct CoursesView: View {
                 .listRowBackground(Color.clear)
                 .swipeActions {
                     Button(role: .destructive) {
-                        store.courses.removeAll { $0.id == course.id }
+                        if let index = filtered.firstIndex(where: { $0.id == course.id }) { store.deleteCourses(at: IndexSet(integer: index), from: filtered) }
                     } label: { Label("Elimina", systemImage: "trash") }
                 }
             }
@@ -129,7 +129,7 @@ struct AddCourseView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Salva") {
-                        store.courses.append(DanceCourse(title: title.isEmpty ? "Nuovo corso" : title, teacher: teacher.isEmpty ? "Da assegnare" : teacher, day: day, time: time, room: room, enrolled: 0, capacity: capacity, style: "Danza"))
+                        store.addCourse(DanceCourse(title: title.isEmpty ? "Nuovo corso" : title, teacher: teacher.isEmpty ? "Da assegnare" : teacher, day: day, time: time, room: room, enrolled: 0, capacity: capacity, style: "Danza"))
                         dismiss()
                     }
                 }

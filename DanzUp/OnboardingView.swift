@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    @State private var route: AuthRoute?
     var body: some View {
         NavigationStack {
             ZStack {
@@ -16,26 +15,23 @@ struct WelcomeView: View {
                             Text("La tua scuola di danza, finalmente in ordine.").font(.headline).foregroundColor(.white.opacity(0.82)).multilineTextAlignment(.center)
                         }
                         VStack(spacing: 13) {
-                            AuthButton(title: "Sono una scuola di ballo", subtitle: "Richiedi verifica o accedi", icon: "building.2.fill") { route = .school }
-                            AuthButton(title: "Sono insegnante o segreteria", subtitle: "Entra solo con invito della scuola", icon: "person.2.badge.gearshape.fill") { route = .staff }
-                            AuthButton(title: "Sono genitore o allievo", subtitle: "Usa il codice ricevuto dalla scuola", icon: "figure.2.and.child.holdinghands") { route = .family }
+                            NavigationLink(value: AuthRoute.school) {
+                                AuthButtonLabel(title: "Sono una scuola di ballo", subtitle: "Richiedi verifica o accedi", icon: "building.2.fill")
+                            }
+                            NavigationLink(value: AuthRoute.staff) {
+                                AuthButtonLabel(title: "Sono insegnante o segreteria", subtitle: "Entra solo con invito della scuola", icon: "person.2.badge.gearshape.fill")
+                            }
+                            NavigationLink(value: AuthRoute.family) {
+                                AuthButtonLabel(title: "Sono genitore o allievo", subtitle: "Usa il codice ricevuto dalla scuola", icon: "figure.2.and.child.holdinghands")
+                            }
                         }
                         Text("Nessun utente esterno può creare liberamente una scuola. Le nuove scuole vengono verificate prima dell’attivazione.")
                             .font(.caption).foregroundColor(.white.opacity(0.72)).multilineTextAlignment(.center).padding(.horizontal)
                     }.padding(20)
                 }
             }
-            .background {
-                NavigationLink(
-                    destination: Group {
-                        if let route { AuthFlowView(route: route) } else { EmptyView() }
-                    },
-                    isActive: Binding(
-                        get: { route != nil },
-                        set: { if !$0 { route = nil } }
-                    )
-                ) { EmptyView() }
-                .hidden()
+            .navigationDestination(for: AuthRoute.self) { route in
+                AuthFlowView(route: route)
             }
         }
     }
@@ -43,7 +39,7 @@ struct WelcomeView: View {
 
 enum AuthRoute: String, Identifiable, Hashable { case school, staff, family; var id: String { rawValue } }
 
-private struct AuthButton: View { let title: String; let subtitle: String; let icon: String; let action: () -> Void; var body: some View { Button(action: action) { HStack(spacing: 15) { Image(systemName: icon).font(.title2).frame(width: 46, height: 46).background(Color.white.opacity(0.16)).clipShape(RoundedRectangle(cornerRadius: 15)); VStack(alignment: .leading, spacing: 3) { Text(title).font(.headline); Text(subtitle).font(.caption).opacity(0.75) }; Spacer(); Image(systemName: "chevron.right") }.foregroundColor(.white).padding(15).background(Color.white.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 22)).overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.white.opacity(0.18))) }.buttonStyle(.plain) } }
+private struct AuthButtonLabel: View { let title: String; let subtitle: String; let icon: String; var body: some View { HStack(spacing: 15) { Image(systemName: icon).font(.title2).frame(width: 46, height: 46).background(Color.white.opacity(0.16)).clipShape(RoundedRectangle(cornerRadius: 15)); VStack(alignment: .leading, spacing: 3) { Text(title).font(.headline); Text(subtitle).font(.caption).opacity(0.75) }; Spacer(); Image(systemName: "chevron.right") }.foregroundColor(.white).padding(15).background(Color.white.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 22)).overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.white.opacity(0.18))) } }
 
 struct LogoMark: View { var body: some View { ZStack { RoundedRectangle(cornerRadius: 30, style: .continuous).fill(Color.white); Image(systemName: "figure.dance").font(.system(size: 48, weight: .semibold)).foregroundColor(.dzPurple); Circle().fill(Color.dzFuchsia).frame(width: 18, height: 18).offset(x: 31, y: -31) }.shadow(color: .black.opacity(0.18), radius: 20, y: 10) } }
 
