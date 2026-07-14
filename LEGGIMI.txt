@@ -1,15 +1,22 @@
-DanzUp – Build 13
-Compatibile con Xcode 15 e iOS 16.
+DanzUp Build 27 - Flusso codici invito completo
 
 Novità:
-- Conteggio iscritti ai corsi calcolato dagli allievi realmente assegnati.
-- Registro presenze filtrato sul corso selezionato, senza mostrare allievi di altri corsi.
-- Creazione allievo con menu dei corsi già creati.
-- Data di nascita con calendario e calcolo automatico dell'età.
-- Orario del corso con selettore orologio.
-- Dettaglio corso con elenco reale degli iscritti.
-- Navigazione diretta al registro del corso corretto.
+- I codici vengono verificati davvero durante l'accesso di segreteria, insegnanti, genitori e allievi.
+- Un codice inesistente, disattivato, esaurito o non compatibile mostra un errore chiaro.
+- Ogni utilizzo valido riduce gli utilizzi disponibili del codice.
+- Al termine degli utilizzi il codice viene disattivato automaticamente.
+- L'utente viene collegato alla scuola e compare nella sezione "Utenti collegati alla scuola".
+- La scuola può bloccare, riattivare o rimuovere gli utenti collegati.
+- I dati restano salvati localmente sul dispositivo in questa build demo.
 
-Aprire DanzUp.xcodeproj, scegliere il proprio Team e avviare Run.
+Test consigliato:
+1. Accedi come scuola.
+2. Apri Profilo > Inviti e codici accesso.
+3. Genera un codice e copialo.
+4. Esci dall'account.
+5. Accedi come ruolo corrispondente usando nome, email, password e codice.
+6. Esci e rientra come scuola.
+7. Verifica il nuovo utente e il conteggio aggiornato del codice.
 
-BUILD 21: gestione iscritti direttamente dalla scheda corso, ricerca allievi, aggiunta/rimozione e conteggio aggiornato.
+Compatibilità: Xcode 15, iOS 16+
+Versione 1.0 - Build 27

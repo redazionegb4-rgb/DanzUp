@@ -348,6 +348,39 @@ struct InviteCenterView: View {
                 }
             }
 
+            Section("Utenti collegati alla scuola") {
+                if store.schoolMembers.isEmpty {
+                    Text("Nessun utente ha ancora utilizzato un codice.").foregroundColor(.secondary)
+                } else {
+                    ForEach(store.schoolMembers) { member in
+                        HStack(spacing: 12) {
+                            Image(systemName: member.role.icon)
+                                .foregroundColor(member.isActive ? .dzPurple : .secondary)
+                                .frame(width: 34, height: 34)
+                                .background(Color.dzPurple.opacity(0.10))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(member.name).font(.headline)
+                                Text("\(member.role.rawValue) • \(member.email)").font(.caption).foregroundColor(.secondary)
+                                Text("Codice usato: \(member.inviteCode)").font(.caption2).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Text(member.isActive ? "Attivo" : "Bloccato")
+                                .font(.caption.bold())
+                                .foregroundColor(member.isActive ? .green : .red)
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button { store.toggleMember(member.id) } label: {
+                                Label(member.isActive ? "Blocca" : "Riattiva", systemImage: member.isActive ? "lock" : "lock.open")
+                            }.tint(member.isActive ? .orange : .green)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) { store.deleteMember(member.id) } label: { Label("Rimuovi", systemImage: "trash") }
+                        }
+                    }
+                }
+            }
+
             Section {
                 Button { showNewInvite = true } label: { Label("Genera nuovo codice", systemImage: "qrcode.viewfinder") }
             } footer: {
@@ -419,7 +452,8 @@ private struct NewInviteView: View {
                     Picker("Ruolo", selection: $role) {
                         Text("Segreteria").tag(UserRole.secretary)
                         Text("Insegnante").tag(UserRole.teacher)
-                        Text("Genitore / Allievo").tag(UserRole.parent)
+                        Text("Genitore").tag(UserRole.parent)
+                        Text("Allievo").tag(UserRole.student)
                     }
                 }
                 Section("Validità") {

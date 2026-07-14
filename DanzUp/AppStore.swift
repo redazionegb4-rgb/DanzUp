@@ -14,9 +14,11 @@ final class AppStore: ObservableObject {
     @Published var announcements: [Announcement] = AppStore.demoAnnouncements
     @Published var attendanceByCourse: [String: Set<UUID>] = [:]
     @Published var inviteCodes: [InviteCode] = AppStore.demoInviteCodes
+    @Published var schoolMembers: [SchoolMember] = AppStore.demoMembers
+    @Published var currentMember: SchoolMember?
     @Published var lastSavedAt: Date?
 
-    private let persistenceKey = "DanzUp.LocalData.v13"
+    private let persistenceKey = "DanzUp.LocalData.v14"
     private var isRestoring = false
 
     init() {
@@ -32,7 +34,45 @@ final class AppStore: ObservableObject {
 
     func enterDemo(role: UserRole) {
         userRole = role
+        currentMember = nil
         isAuthenticated = true
+    }
+
+    @discardableResult
+    func useInvite(code rawCode: String, email rawEmail: String, name rawName: String, selectedRole: UserRole) -> InviteUseResult {
+        let code = rawCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let email = rawEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty, !email.isEmpty, !name.isEmpty else { return .emptyFields }
+        guard let index = inviteCodes.firstIndex(where: { $0.code.uppercased() == code }) else { return .invalidCode }
+        guard inviteCodes[index].isActive else { return .inactiveCode }
+        guard inviteCodes[index].remainingUses > 0 else { return .exhaustedCode }
+
+        let codeRole = inviteCodes[index].role
+        let familyCompatible = [.parent, .student].contains(codeRole) && [.parent, .student].contains(selectedRole)
+        guard codeRole == selectedRole || familyCompatible else { return .incompatibleRole(expected: codeRole) }
+        guard !schoolMembers.contains(where: { $0.email.lowercased() == email }) else { return .emailAlreadyRegistered }
+
+        inviteCodes[index].usedCount += 1
+        if inviteCodes[index].remainingUses == 0 { inviteCodes[index].isActive = false }
+        let member = SchoolMember(name: name, email: email, role: selectedRole, inviteCode: inviteCodes[index].code)
+        schoolMembers.insert(member, at: 0)
+        currentMember = member
+        userRole = selectedRole
+        isAuthenticated = true
+        saveLocalData()
+        return .success(member)
+    }
+
+    func toggleMember(_ id: UUID) {
+        guard let index = schoolMembers.firstIndex(where: { $0.id == id }) else { return }
+        schoolMembers[index].isActive.toggle()
+        saveLocalData()
+    }
+
+    func deleteMember(_ id: UUID) {
+        schoolMembers.removeAll { $0.id == id }
+        saveLocalData()
     }
 
     func logout() {
@@ -183,6 +223,7 @@ final class AppStore: ObservableObject {
         announcements = Self.demoAnnouncements
         attendanceByCourse = [:]
         inviteCodes = Self.demoInviteCodes
+        schoolMembers = Self.demoMembers
         trialStart = Date()
         saveLocalData()
     }
@@ -199,7 +240,8 @@ final class AppStore: ObservableObject {
             students: students,
             announcements: announcements,
             attendanceByCourse: attendanceByCourse.mapValues(Array.init),
-            inviteCodes: inviteCodes
+            inviteCodes: inviteCodes,
+            schoolMembers: schoolMembers
         )
         do {
             let data = try JSONEncoder().encode(snapshot)
@@ -226,6 +268,7 @@ final class AppStore: ObservableObject {
             announcements = snapshot.announcements
             attendanceByCourse = snapshot.attendanceByCourse.mapValues(Set.init)
             inviteCodes = snapshot.inviteCodes ?? Self.demoInviteCodes
+            schoolMembers = snapshot.schoolMembers ?? Self.demoMembers
         } catch {
             UserDefaults.standard.removeObject(forKey: persistenceKey)
         }
@@ -242,7 +285,14 @@ final class AppStore: ObservableObject {
         var announcements: [Announcement]
         var attendanceByCourse: [String: [UUID]]
         var inviteCodes: [InviteCode]?
+        var schoolMembers: [SchoolMember]?
     }
+
+    static let demoMembers: [SchoolMember] = [
+        SchoolMember(name: "Giulia Ferri", email: "giulia@danzup.demo", role: .teacher, inviteCode: "DOC-482103"),
+        SchoolMember(name: "Laura Bianchi", email: "laura@danzup.demo", role: .secretary, inviteCode: "SEG-729412"),
+        SchoolMember(name: "Anna Romano", email: "anna@danzup.demo", role: .parent, inviteCode: "FAM-156824")
+    ]
 
     static let demoInviteCodes: [InviteCode] = [
         InviteCode(code: "DOC-482103", role: .teacher, maxUses: 3, usedCount: 1),

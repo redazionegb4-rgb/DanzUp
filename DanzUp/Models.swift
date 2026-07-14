@@ -45,3 +45,23 @@ struct InviteCode: Identifiable, Codable, Equatable {
         return remainingUses == 1 ? "1 utilizzo rimasto" : "\(remainingUses) utilizzi rimasti"
     }
 }
+
+struct SchoolMember: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var name: String
+    var email: String
+    var role: UserRole
+    var inviteCode: String
+    var joinedAt: Date = Date()
+    var isActive: Bool = true
+}
+
+enum InviteUseResult: Equatable {
+    case success(SchoolMember)
+    case emptyFields
+    case invalidCode
+    case inactiveCode
+    case exhaustedCode
+    case incompatibleRole(expected: UserRole)
+    case emailAlreadyRegistered
+}

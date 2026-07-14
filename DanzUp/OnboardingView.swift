@@ -50,6 +50,9 @@ struct AuthFlowView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var inviteCode = ""
+    @State private var fullName = ""
+    @State private var inviteErrorMessage = ""
+    @State private var showInviteError = false
     @State private var school = ""
     @State private var vat = ""
     @State private var showRequest = false
@@ -62,7 +65,9 @@ struct AuthFlowView: View {
 
     var body: some View {
         ZStack { ScreenBackground(); ScrollView { VStack(spacing: 20) { header; if route == .school { Picker("", selection: $mode) { Text("Accedi").tag(0); Text("Richiedi attivazione").tag(1) }.pickerStyle(.segmented); schoolContent } else { inviteContent }; demoSection }.padding() } }
-        .navigationTitle(title).navigationBarTitleDisplayMode(.inline).alert("Richiesta inviata", isPresented: $showRequest) { Button("OK") {} } message: { Text("La scuola verrà verificata prima di poter creare account e utilizzare DanzUp.") }
+        .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+        .alert("Richiesta inviata", isPresented: $showRequest) { Button("OK") {} } message: { Text("La scuola verrà verificata prima di poter creare account e utilizzare DanzUp.") }
+        .alert("Codice non utilizzabile", isPresented: $showInviteError) { Button("OK") {} } message: { Text(inviteErrorMessage) }
     }
     private var title: String { route == .school ? "Accesso scuola" : route == .staff ? "Accesso personale" : "Accesso famiglia" }
     private var header: some View { DZCard { HStack(spacing: 15) { Image(systemName: route == .school ? "building.2.fill" : route == .staff ? "person.2.fill" : "figure.2.and.child.holdinghands").font(.title).foregroundColor(.dzPurple).frame(width: 58, height: 58).background(Color.dzPurple.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 18)); VStack(alignment: .leading, spacing: 4) { Text(title).font(.title3.bold()); Text(route == .school ? "Solo scuole verificate" : "Account creato dalla tua scuola").foregroundColor(.secondary).font(.subheadline) }; Spacer() } } }
@@ -70,7 +75,44 @@ struct AuthFlowView: View {
         if mode == 0 { DZCard { VStack(spacing: 14) { TextField("Email della scuola", text: $email).textContentType(.emailAddress).textInputAutocapitalization(.never); SecureField("Password", text: $password); Button("Accedi") { store.enterDemo(role: .owner) }.buttonStyle(PrimaryButtonStyle()) } } }
         else { DZCard { VStack(spacing: 14) { TextField("Nome legale della scuola", text: $school); TextField("Partita IVA o Codice Fiscale", text: $vat); TextField("Email istituzionale", text: $email).textInputAutocapitalization(.never); Text("La registrazione non attiva subito l’account: controlliamo i dati della scuola prima di approvarla.").font(.caption).foregroundColor(.secondary); Button("Invia richiesta di verifica") { showRequest = true }.buttonStyle(PrimaryButtonStyle()) } } }
     }
-    private var inviteContent: some View { DZCard { VStack(spacing: 14) { Picker("Ruolo", selection: $selectedRole) { ForEach(route == .staff ? [UserRole.secretary, UserRole.teacher] : [UserRole.parent, UserRole.student]) { role in Text(role.rawValue).tag(role) } }.pickerStyle(.segmented); TextField("Codice invito (es. DZ-482915)", text: $inviteCode).textInputAutocapitalization(.characters); TextField("Email", text: $email).textInputAutocapitalization(.never); SecureField("Password", text: $password); Text("Il codice viene generato dalla scuola ed è valido solo per il ruolo indicato nell’invito.").font(.caption).foregroundColor(.secondary); Button("Continua") { store.enterDemo(role: selectedRole) }.buttonStyle(PrimaryButtonStyle()) } } }
+    private var inviteContent: some View {
+        DZCard {
+            VStack(spacing: 14) {
+                Picker("Ruolo", selection: $selectedRole) {
+                    ForEach(route == .staff ? [UserRole.secretary, UserRole.teacher] : [UserRole.parent, UserRole.student]) { role in
+                        Text(role.rawValue).tag(role)
+                    }
+                }.pickerStyle(.segmented)
+                TextField("Nome e cognome", text: $fullName).textContentType(.name)
+                TextField("Codice invito", text: $inviteCode).textInputAutocapitalization(.characters).autocorrectionDisabled()
+                TextField("Email", text: $email).textContentType(.emailAddress).textInputAutocapitalization(.never).keyboardType(.emailAddress)
+                SecureField("Password", text: $password)
+                Text("Usando il codice verrai collegato alla scuola che lo ha generato. La scuola vedrà subito il nuovo accesso e il codice consumerà un utilizzo.")
+                    .font(.caption).foregroundColor(.secondary)
+                Button("Verifica codice e accedi") { useInvite() }.buttonStyle(PrimaryButtonStyle())
+            }
+        }
+    }
+
+    private func useInvite() {
+        guard password.count >= 6 else {
+            inviteErrorMessage = "Inserisci una password di almeno 6 caratteri."
+            showInviteError = true
+            return
+        }
+        let result = store.useInvite(code: inviteCode, email: email, name: fullName, selectedRole: selectedRole)
+        switch result {
+        case .success: break
+        case .emptyFields: inviteErrorMessage = "Compila nome, codice ed email."
+        case .invalidCode: inviteErrorMessage = "Il codice non esiste. Controlla di averlo scritto correttamente."
+        case .inactiveCode: inviteErrorMessage = "Questo codice è stato disattivato dalla scuola."
+        case .exhaustedCode: inviteErrorMessage = "Questo codice ha già raggiunto il numero massimo di utilizzi."
+        case .incompatibleRole(let expected): inviteErrorMessage = "Questo codice è riservato al ruolo: \(expected.rawValue)."
+        case .emailAlreadyRegistered: inviteErrorMessage = "Questa email è già collegata alla scuola."
+        }
+        if case .success = result { return }
+        showInviteError = true
+    }
     private var demoSection: some View { Button { store.enterDemo(role: route == .school ? .owner : selectedRole) } label: { Label("Apri accesso demo", systemImage: "sparkles").font(.headline).foregroundColor(.dzPurple).frame(maxWidth: .infinity).padding() }.background(Color.dzPurple.opacity(0.10)).clipShape(RoundedRectangle(cornerRadius: 18)) }
 }
 
