@@ -57,7 +57,12 @@ struct AuthFlowView: View {
     @State private var school = ""
     @State private var vat = ""
     @State private var showRequest = false
-    @State private var selectedRole: UserRole = .teacher
+    @State private var selectedRole: UserRole
+
+    init(route: AuthRoute) {
+        self.route = route
+        _selectedRole = State(initialValue: route == .family ? .parent : (route == .staff ? .teacher : .owner))
+    }
 
     var body: some View {
         ZStack { ScreenBackground(); ScrollView { VStack(spacing: 20) { header; if route == .school { Picker("", selection: $mode) { Text("Accedi").tag(0); Text("Richiedi attivazione").tag(1) }.pickerStyle(.segmented); schoolContent } else { inviteContent }; demoSection }.padding() } }

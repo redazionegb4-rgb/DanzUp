@@ -67,7 +67,7 @@ private struct ManagementTile: View {
     }
 }
 
-private struct OwnerAttendanceView: View {
+struct OwnerAttendanceView: View {
     @EnvironmentObject var store: AppStore
     @State private var selectedCourse = "Hip Hop Teen"
     @State private var present: Set<UUID> = []
@@ -104,7 +104,7 @@ private struct OwnerAttendanceView: View {
     }
 }
 
-private struct PaymentsManagementView: View {
+struct PaymentsManagementView: View {
     @EnvironmentObject var store: AppStore
     @State private var filter = "Tutte"
 
@@ -145,7 +145,7 @@ private struct FinanceMetric: View {
     }
 }
 
-private struct MedicalCertificatesView: View {
+struct MedicalCertificatesView: View {
     @EnvironmentObject var store: AppStore
     var body: some View {
         List {
@@ -164,7 +164,7 @@ private struct MedicalCertificatesView: View {
     }
 }
 
-private struct CommunicationsManagementView: View {
+struct CommunicationsManagementView: View {
     @EnvironmentObject var store: AppStore
     @State private var showComposer = false
 
@@ -205,7 +205,7 @@ private struct CommunicationComposerView: View {
     }
 }
 
-private struct EventsManagementView: View {
+struct EventsManagementView: View {
     var body: some View {
         List {
             Section("Evento attivo") {

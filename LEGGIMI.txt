@@ -1,12 +1,11 @@
-DanzUp Build 8 - Aree separate
+DanzUp — Build 10
+Compatibile con Xcode 15 e iOS 16.
 
-Questa build divide l'app in tre esperienze indipendenti:
-1. Scuola di ballo: dashboard, corsi, allievi, gestione e abbonamento.
-2. Segreteria/Insegnanti: lezioni, registro presenze, comunicazioni e profilo.
-3. Genitori/Allievi: calendario, corsi personali, documenti, pagamenti e avvisi.
+Correzioni principali:
+- accesso Genitore/Allievo collegato al ruolo corretto;
+- riquadri Da controllare completamente cliccabili;
+- collegamenti rapidi da Home a quote, certificati, avvisi e inviti;
+- lezioni e metriche della Home aprono le relative sezioni;
+- dashboard differenziata meglio per proprietario, staff, genitore e allievo.
 
-Accesso demo:
-- Scegli l'area iniziale.
-- Per staff e famiglia seleziona anche il ruolo specifico.
-
-Compatibilità: Xcode 15, iOS 16 o successivo.
+Nota: dati, login e pagamenti sono ancora dimostrativi locali.
