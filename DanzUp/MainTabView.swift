@@ -58,7 +58,7 @@ struct StaffCoursesView: View {
     @EnvironmentObject var store: AppStore
     var body: some View {
         List(store.courses) { course in
-            NavigationLink { CourseDetailView(course: course) } label: {
+            NavigationLink { CourseDetailView(courseID: course.id) } label: {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(course.title).font(.headline)
                     Text("\(course.day) • \(course.time) • \(course.room)").font(.caption).foregroundColor(.secondary)
