@@ -2,20 +2,282 @@ import SwiftUI
 
 struct ManagementView: View {
     private let items: [ManagementItem] = [
-        ManagementItem(title: "Presenze", subtitle: "Registro e recuperi", icon: "checkmark.circle.fill", tint: .green, badge: "Oggi 46"),
-        ManagementItem(title: "Quote", subtitle: "Pagamenti e scadenze", icon: "eurosign.circle.fill", tint: .orange, badge: "7 scadute"),
-        ManagementItem(title: "Certificati", subtitle: "Scadenze mediche", icon: "cross.case.fill", tint: .blue, badge: "4 avvisi"),
-        ManagementItem(title: "Comunicazioni", subtitle: "Messaggi mirati", icon: "megaphone.fill", tint: .dzFuchsia, badge: "2 nuove"),
-        ManagementItem(title: "Saggi ed eventi", subtitle: "Prove, costumi e presenze", icon: "star.fill", tint: .dzPurple, badge: "1 attivo"),
-        ManagementItem(title: "Staff e inviti", subtitle: "Ruoli e codici accesso", icon: "person.2.badge.gearshape.fill", tint: .indigo, badge: "8 membri")
+        ManagementItem(kind: .attendance, title: "Presenze", subtitle: "Registro, assenze e recuperi", icon: "checkmark.circle.fill", tint: .green, badge: "Oggi 46"),
+        ManagementItem(kind: .payments, title: "Quote", subtitle: "Pagamenti, ricevute e scadenze", icon: "eurosign.circle.fill", tint: .orange, badge: "7 scadute"),
+        ManagementItem(kind: .medical, title: "Certificati", subtitle: "Documenti e scadenze mediche", icon: "cross.case.fill", tint: .blue, badge: "4 avvisi"),
+        ManagementItem(kind: .announcements, title: "Comunicazioni", subtitle: "Avvisi mirati e notifiche", icon: "megaphone.fill", tint: .dzFuchsia, badge: "2 nuove"),
+        ManagementItem(kind: .events, title: "Saggi ed eventi", subtitle: "Prove, costumi e partecipanti", icon: "star.fill", tint: .dzPurple, badge: "1 attivo"),
+        ManagementItem(kind: .staff, title: "Staff e inviti", subtitle: "Ruoli e codici di accesso", icon: "person.2.badge.gearshape.fill", tint: .indigo, badge: "8 membri")
     ]
+
     var body: some View {
-        ZStack { ScreenBackground(); ScrollView { VStack(alignment: .leading, spacing: 18) { SectionTitle("Centro gestione", subtitle: "Tutto ciò che serve alla segreteria"); LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 13) { ForEach(items) { item in NavigationLink { ManagementDetailView(item: item) } label: { ManagementTile(item: item) }.buttonStyle(.plain) } } }.padding() } }
+        ZStack {
+            ScreenBackground()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    SectionTitle("Centro gestione", subtitle: "Operazioni riservate alla scuola e alla segreteria")
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 13) {
+                        ForEach(items) { item in
+                            NavigationLink { destination(for: item.kind) } label: { ManagementTile(item: item) }
+                                .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding()
+            }
+        }
         .navigationTitle("Gestione")
+    }
+
+    @ViewBuilder
+    private func destination(for kind: ManagementKind) -> some View {
+        switch kind {
+        case .attendance: OwnerAttendanceView()
+        case .payments: PaymentsManagementView()
+        case .medical: MedicalCertificatesView()
+        case .announcements: CommunicationsManagementView()
+        case .events: EventsManagementView()
+        case .staff: InviteCenterView()
+        }
     }
 }
 
-struct ManagementItem: Identifiable { let id = UUID(); let title: String; let subtitle: String; let icon: String; let tint: Color; let badge: String }
-private struct ManagementTile: View { let item: ManagementItem; var body: some View { VStack(alignment: .leading, spacing: 12) { HStack { Image(systemName: item.icon).font(.title2).foregroundColor(item.tint).frame(width: 46, height: 46).background(item.tint.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 15)); Spacer(); Image(systemName: "arrow.up.right").font(.caption.bold()).foregroundColor(.secondary) }; Text(item.title).font(.headline).foregroundColor(.primary); Text(item.subtitle).font(.caption).foregroundColor(.secondary).lineLimit(2); Text(item.badge).font(.caption2.bold()).foregroundColor(item.tint).padding(.horizontal, 9).padding(.vertical, 5).background(item.tint.opacity(0.10)).clipShape(Capsule()) }.frame(maxWidth: .infinity, minHeight: 165, alignment: .leading).padding(15).background(Color(uiColor: .secondarySystemBackground)).clipShape(RoundedRectangle(cornerRadius: 23)).overlay(RoundedRectangle(cornerRadius: 23).stroke(Color.primary.opacity(0.05))) } }
+enum ManagementKind { case attendance, payments, medical, announcements, events, staff }
+struct ManagementItem: Identifiable { let id = UUID(); let kind: ManagementKind; let title: String; let subtitle: String; let icon: String; let tint: Color; let badge: String }
 
-struct ManagementDetailView: View { let item: ManagementItem; var body: some View { ZStack { ScreenBackground(); ScrollView { VStack(spacing: 16) { DZCard { HStack { Image(systemName: item.icon).font(.largeTitle).foregroundColor(item.tint); VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text(item.subtitle).foregroundColor(.secondary) }; Spacer() } }; ForEach(0..<3, id: \.self) { index in DZCard { HStack { Image(systemName: index == 0 ? "chart.bar.fill" : index == 1 ? "clock.fill" : "plus.circle.fill").foregroundColor(item.tint).frame(width: 38, height: 38).background(item.tint.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12)); VStack(alignment: .leading) { Text(index == 0 ? "Riepilogo aggiornato" : index == 1 ? "Attività recenti" : "Aggiungi nuovo elemento").font(.headline); Text("Sezione pronta per il collegamento al database.").font(.caption).foregroundColor(.secondary) }; Spacer(); Image(systemName: "chevron.right").foregroundColor(.secondary) } } } }.padding() } }.navigationTitle(item.title).navigationBarTitleDisplayMode(.inline) } }
+private struct ManagementTile: View {
+    let item: ManagementItem
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: item.icon).font(.title2).foregroundColor(item.tint)
+                    .frame(width: 46, height: 46).background(item.tint.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 15))
+                Spacer()
+                Image(systemName: "arrow.up.right").font(.caption.bold()).foregroundColor(.secondary)
+            }
+            Text(item.title).font(.headline).foregroundColor(.primary)
+            Text(item.subtitle).font(.caption).foregroundColor(.secondary).lineLimit(2)
+            Text(item.badge).font(.caption2.bold()).foregroundColor(item.tint)
+                .padding(.horizontal, 9).padding(.vertical, 5).background(item.tint.opacity(0.10)).clipShape(Capsule())
+        }
+        .frame(maxWidth: .infinity, minHeight: 165, alignment: .leading)
+        .padding(15).background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 23))
+        .overlay(RoundedRectangle(cornerRadius: 23).stroke(Color.primary.opacity(0.05)))
+    }
+}
+
+private struct OwnerAttendanceView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var selectedCourse = "Hip Hop Teen"
+    @State private var present: Set<UUID> = []
+
+    var body: some View {
+        List {
+            Section("Lezione") {
+                Picker("Corso", selection: $selectedCourse) {
+                    ForEach(store.courses.map(\.title), id: \.self) { Text($0) }
+                }
+                LabeledContent("Orario", value: "18:30 – 19:45")
+                LabeledContent("Sala", value: "Urban")
+            }
+            Section("Registro presenze") {
+                ForEach(store.students) { student in
+                    Button {
+                        if present.contains(student.id) { present.remove(student.id) } else { present.insert(student.id) }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(student.name).foregroundColor(.primary)
+                                Text(student.course).font(.caption).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: present.contains(student.id) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(present.contains(student.id) ? .green : .secondary)
+                        }
+                    }
+                }
+            }
+            Section { Button("Salva registro") {} }
+        }
+        .navigationTitle("Presenze")
+    }
+}
+
+private struct PaymentsManagementView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var filter = "Tutte"
+
+    var body: some View {
+        List {
+            Section {
+                Picker("Stato", selection: $filter) {
+                    ForEach(["Tutte", "Pagate", "Da pagare", "Scadute"], id: \.self) { Text($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+            Section("Riepilogo luglio") {
+                HStack { FinanceMetric(value: "€4.280", label: "Incassato", tint: .green); FinanceMetric(value: "€630", label: "Da incassare", tint: .orange) }
+            }
+            Section("Allievi") {
+                ForEach(store.students) { student in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(student.name).font(.headline)
+                            Text(student.course).font(.caption).foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Text(student.paymentStatus.rawValue).font(.caption.bold()).foregroundColor(student.paymentStatus.color)
+                    }
+                }
+            }
+            Section { Label("Registra nuovo pagamento", systemImage: "plus.circle.fill"); Label("Esporta riepilogo", systemImage: "square.and.arrow.up") }
+        }
+        .navigationTitle("Quote")
+    }
+}
+
+private struct FinanceMetric: View {
+    let value: String; let label: String; let tint: Color
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) { Text(value).font(.title3.bold()); Text(label).font(.caption).foregroundColor(.secondary) }
+            .frame(maxWidth: .infinity, alignment: .leading).padding(12).background(tint.opacity(0.10)).clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+private struct MedicalCertificatesView: View {
+    @EnvironmentObject var store: AppStore
+    var body: some View {
+        List {
+            Section("Scadenze") {
+                ForEach(store.students) { student in
+                    HStack {
+                        VStack(alignment: .leading) { Text(student.name).font(.headline); Text(student.course).font(.caption).foregroundColor(.secondary) }
+                        Spacer()
+                        Text(student.medicalStatus.rawValue).font(.caption.bold()).foregroundColor(student.medicalStatus.color)
+                    }
+                }
+            }
+            Section("Azioni") { Label("Invia promemoria scadenze", systemImage: "bell.badge.fill"); Label("Carica certificato", systemImage: "square.and.arrow.up.fill") }
+        }
+        .navigationTitle("Certificati")
+    }
+}
+
+private struct CommunicationsManagementView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var showComposer = false
+
+    var body: some View {
+        List {
+            Section("Comunicazioni pubblicate") {
+                ForEach(store.announcements) { item in
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack { Text(item.title).font(.headline); Spacer(); Text(item.audience).font(.caption2.bold()).foregroundColor(.dzPurple) }
+                        Text(item.body).font(.subheadline).foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .navigationTitle("Comunicazioni")
+        .toolbar { Button { showComposer = true } label: { Image(systemName: "square.and.pencil") } }
+        .sheet(isPresented: $showComposer) { CommunicationComposerView() }
+    }
+}
+
+private struct CommunicationComposerView: View {
+    @Environment(\.dismiss) var dismiss
+    @State private var title = ""
+    @State private var message = ""
+    @State private var audience = "Tutta la scuola"
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Destinatari") { Picker("Invia a", selection: $audience) { ForEach(["Tutta la scuola", "Solo insegnanti", "Solo genitori", "Corso specifico"], id: \.self) { Text($0) } } }
+                Section("Messaggio") { TextField("Titolo", text: $title); TextEditor(text: $message).frame(minHeight: 140) }
+                Section { Toggle("Invia notifica push", isOn: .constant(true)) }
+            }
+            .navigationTitle("Nuovo avviso")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Pubblica") { dismiss() }.disabled(title.isEmpty || message.isEmpty) } }
+        }
+    }
+}
+
+private struct EventsManagementView: View {
+    var body: some View {
+        List {
+            Section("Evento attivo") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Saggio d’estate 2026").font(.title3.bold())
+                    Label("28 giugno • Teatro Aurora", systemImage: "calendar")
+                    Label("112 partecipanti confermati", systemImage: "person.3.fill")
+                    ProgressView(value: 0.72) { Text("Preparazione") }
+                }
+                .padding(.vertical, 6)
+            }
+            Section("Organizzazione") {
+                Label("Calendario prove", systemImage: "calendar.badge.clock")
+                Label("Ordine esibizioni", systemImage: "list.number")
+                Label("Costumi e taglie", systemImage: "tshirt.fill")
+                Label("Partecipanti e conferme", systemImage: "person.crop.circle.badge.checkmark")
+                Label("Quote evento", systemImage: "eurosign.circle.fill")
+            }
+            Section { Label("Crea nuovo evento", systemImage: "plus.circle.fill") }
+        }
+        .navigationTitle("Saggi ed eventi")
+    }
+}
+
+struct InviteCenterView: View {
+    @State private var showNewInvite = false
+
+    var body: some View {
+        List {
+            Section("Codici attivi") {
+                InviteRow(code: "DOC-4821", role: "Insegnante", uses: "2 utilizzi rimasti", tint: .dzPurple)
+                InviteRow(code: "SEG-7294", role: "Segreteria", uses: "1 utilizzo rimasto", tint: .indigo)
+                InviteRow(code: "FAM-1568", role: "Genitore / Allievo", uses: "12 utilizzi rimasti", tint: .green)
+            }
+            Section("Staff") {
+                Label("Giulia Ferri • Insegnante", systemImage: "figure.dance")
+                Label("Marco De Luca • Insegnante", systemImage: "figure.dance")
+                Label("Elena Rossi • Segreteria", systemImage: "person.crop.rectangle.stack.fill")
+            }
+            Section { Button { showNewInvite = true } label: { Label("Genera nuovo invito", systemImage: "qrcode") } }
+        }
+        .navigationTitle("Staff e inviti")
+        .sheet(isPresented: $showNewInvite) { NewInviteView() }
+    }
+}
+
+private struct InviteRow: View {
+    let code: String; let role: String; let uses: String; let tint: Color
+    var body: some View {
+        HStack {
+            Image(systemName: "qrcode").font(.title2).foregroundColor(tint)
+            VStack(alignment: .leading) { Text(code).font(.headline.monospaced()); Text("\(role) • \(uses)").font(.caption).foregroundColor(.secondary) }
+            Spacer()
+            Image(systemName: "doc.on.doc").foregroundColor(.secondary)
+        }
+    }
+}
+
+private struct NewInviteView: View {
+    @Environment(\.dismiss) var dismiss
+    @State private var role = "Insegnante"
+    @State private var uses = 1
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Picker("Ruolo", selection: $role) { ForEach(["Segreteria", "Insegnante", "Genitore / Allievo"], id: \.self) { Text($0) } }
+                Stepper("Numero di utilizzi: \(uses)", value: $uses, in: 1...50)
+                Section { Text("Il codice consentirà solo l’accesso al ruolo selezionato e potrà essere disattivato dalla scuola.").font(.caption).foregroundColor(.secondary) }
+            }
+            .navigationTitle("Nuovo invito")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Genera") { dismiss() } } }
+        }
+    }
+}
