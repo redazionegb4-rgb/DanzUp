@@ -9,7 +9,7 @@ struct SettingsView: View {
             Section("Abbonamento") { Button { showPlans = true } label: { HStack { Label("Piano \(store.selectedPlan.rawValue)", systemImage: "crown.fill"); Spacer(); Text("\(store.trialDaysRemaining) giorni gratis").font(.caption).foregroundColor(.secondary) } }; Label("Ripristina acquisti", systemImage: "arrow.clockwise") }
             Section("Scuola e accessi") { Label("Dati della scuola", systemImage: "building.2.fill"); Label("Genera codice invito", systemImage: "qrcode"); Label("Ruoli e autorizzazioni", systemImage: "person.badge.key.fill") }
             Section("Preferenze") { Picker("Aspetto", selection: $store.appearance) { ForEach(AppAppearance.allCases) { Text($0.rawValue).tag($0) } }; Label("Notifiche", systemImage: "bell.fill") }
-            Section("Informazioni") { Label("Assistenza", systemImage: "questionmark.circle.fill"); Label("Privacy", systemImage: "hand.raised.fill"); LabeledContent("Versione", value: "1.0 • Build 3") }
+            Section("Informazioni") { Label("Assistenza", systemImage: "questionmark.circle.fill"); Label("Privacy", systemImage: "hand.raised.fill"); LabeledContent("Versione", value: "1.0 • Build 8") }
             Section { Button(role: .destructive) { store.logout() } label: { Label("Esci", systemImage: "rectangle.portrait.and.arrow.right") } }
         }.navigationTitle("Profilo").sheet(isPresented: $showPlans) { PlansView() }
     }

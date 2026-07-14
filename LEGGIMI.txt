@@ -1,18 +1,12 @@
-DanzUp Build 3 - Xcode 15 / iOS 16+
+DanzUp Build 8 - Aree separate
 
-NOVITÀ
-- Registrazione scuola separata e soggetta a verifica.
-- Insegnanti, segreteria, genitori e allievi entrano solo tramite codice invito.
-- Accessi distinti per ogni ruolo.
-- Nuova grafica, dashboard, centro gestione e icona.
-- Prova gratuita di 14 giorni e piani simulati.
+Questa build divide l'app in tre esperienze indipendenti:
+1. Scuola di ballo: dashboard, corsi, allievi, gestione e abbonamento.
+2. Segreteria/Insegnanti: lezioni, registro presenze, comunicazioni e profilo.
+3. Genitori/Allievi: calendario, corsi personali, documenti, pagamenti e avvisi.
 
-TEST
-Apri DanzUp.xcodeproj, seleziona il tuo Team e premi Run.
-Nella schermata iniziale usa “Apri accesso demo” per provare i diversi percorsi.
-Questa build usa dati locali: database e abbonamenti Apple verranno collegati nelle build successive.
+Accesso demo:
+- Scegli l'area iniziale.
+- Per staff e famiglia seleziona anche il ruolo specifico.
 
-
-BUILD 7 FIX XCODE CLOUD
-- Sostituita navigationDestination(item:) non disponibile su iOS 16.
-- Corretto DZCard per compilazione Swift 5 / Xcode 15.
+Compatibilità: Xcode 15, iOS 16 o successivo.

@@ -2,13 +2,144 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var store: AppStore
+
+    var body: some View {
+        Group {
+            switch store.userRole {
+            case .owner:
+                SchoolTabView()
+            case .secretary, .teacher:
+                StaffTabView()
+            case .parent, .student:
+                FamilyTabView()
+            }
+        }
+        .tint(.dzPurple)
+    }
+}
+
+private struct SchoolTabView: View {
     var body: some View {
         TabView {
             NavigationStack { DashboardView() }.tabItem { Label("Home", systemImage: "sparkles") }
             NavigationStack { CoursesView() }.tabItem { Label("Corsi", systemImage: "figure.dance") }
-            NavigationStack { StudentsView() }.tabItem { Label(store.userRole == .parent ? "Famiglia" : "Allievi", systemImage: "person.3.fill") }
+            NavigationStack { StudentsView() }.tabItem { Label("Allievi", systemImage: "person.3.fill") }
             NavigationStack { ManagementView() }.tabItem { Label("Gestione", systemImage: "square.grid.2x2.fill") }
+            NavigationStack { SettingsView() }.tabItem { Label("Scuola", systemImage: "building.2.fill") }
+        }
+    }
+}
+
+private struct StaffTabView: View {
+    var body: some View {
+        TabView {
+            NavigationStack { DashboardView() }.tabItem { Label("Oggi", systemImage: "calendar") }
+            NavigationStack { StaffCoursesView() }.tabItem { Label("Lezioni", systemImage: "figure.dance") }
+            NavigationStack { AttendanceRegisterView() }.tabItem { Label("Presenze", systemImage: "checkmark.circle.fill") }
+            NavigationStack { StaffMessagesView() }.tabItem { Label("Messaggi", systemImage: "bubble.left.and.bubble.right.fill") }
             NavigationStack { SettingsView() }.tabItem { Label("Profilo", systemImage: "person.crop.circle.fill") }
-        }.tint(.dzPurple)
+        }
+    }
+}
+
+private struct FamilyTabView: View {
+    var body: some View {
+        TabView {
+            NavigationStack { DashboardView() }.tabItem { Label("Home", systemImage: "house.fill") }
+            NavigationStack { FamilyCalendarView() }.tabItem { Label("Calendario", systemImage: "calendar") }
+            NavigationStack { FamilyCoursesView() }.tabItem { Label("Corsi", systemImage: "figure.dance") }
+            NavigationStack { FamilyDocumentsView() }.tabItem { Label("Documenti", systemImage: "doc.text.fill") }
+            NavigationStack { SettingsView() }.tabItem { Label("Profilo", systemImage: "person.crop.circle.fill") }
+        }
+    }
+}
+
+struct StaffCoursesView: View {
+    @EnvironmentObject var store: AppStore
+    var body: some View {
+        List(store.courses) { course in
+            NavigationLink { CourseDetailView(course: course) } label: {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(course.title).font(.headline)
+                    Text("\(course.day) • \(course.time) • \(course.room)").font(.caption).foregroundColor(.secondary)
+                    Text("\(course.enrolled) allievi").font(.caption.bold()).foregroundColor(.dzPurple)
+                }.padding(.vertical, 5)
+            }
+        }.navigationTitle("Le mie lezioni")
+    }
+}
+
+struct AttendanceRegisterView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var present: Set<UUID> = []
+    var body: some View {
+        List {
+            Section("Lezione selezionata") {
+                Label("Hip Hop Teen • 18:30", systemImage: "figure.dance")
+            }
+            Section("Registro") {
+                ForEach(store.students) { student in
+                    Button {
+                        if present.contains(student.id) { present.remove(student.id) } else { present.insert(student.id) }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading) { Text(student.name).foregroundColor(.primary); Text(student.course).font(.caption).foregroundColor(.secondary) }
+                            Spacer()
+                            Image(systemName: present.contains(student.id) ? "checkmark.circle.fill" : "circle").foregroundColor(present.contains(student.id) ? .green : .secondary).font(.title3)
+                        }
+                    }
+                }
+            }
+        }.navigationTitle("Presenze")
+    }
+}
+
+struct StaffMessagesView: View {
+    @EnvironmentObject var store: AppStore
+    var body: some View {
+        List {
+            Section("Comunicazioni della scuola") {
+                ForEach(store.announcements) { item in
+                    VStack(alignment: .leading, spacing: 5) { Text(item.title).font(.headline); Text(item.body).font(.subheadline).foregroundColor(.secondary); Text(item.audience).font(.caption.bold()).foregroundColor(.dzPurple) }.padding(.vertical, 4)
+                }
+            }
+            Section("Azioni") { Label("Scrivi alla segreteria", systemImage: "paperplane.fill"); Label("Avvisa il tuo corso", systemImage: "megaphone.fill") }
+        }.navigationTitle("Messaggi")
+    }
+}
+
+struct FamilyCalendarView: View {
+    var body: some View {
+        List {
+            Section("Questa settimana") {
+                FamilyLessonRow(day: "MAR", date: "14", title: "Danza Classica", time: "17:00 – 18:15", room: "Sala Étoile")
+                FamilyLessonRow(day: "GIO", date: "16", title: "Danza Classica", time: "17:00 – 18:15", room: "Sala Étoile")
+                FamilyLessonRow(day: "SAB", date: "18", title: "Prova saggio", time: "15:00 – 17:00", room: "Teatro")
+            }
+        }.navigationTitle("Calendario")
+    }
+}
+
+private struct FamilyLessonRow: View {
+    let day: String; let date: String; let title: String; let time: String; let room: String
+    var body: some View { HStack(spacing: 14) { VStack { Text(day).font(.caption.bold()).foregroundColor(.dzPurple); Text(date).font(.title2.bold()) }.frame(width: 48); VStack(alignment: .leading, spacing: 3) { Text(title).font(.headline); Text(time).font(.caption).foregroundColor(.secondary); Label(room, systemImage: "mappin.and.ellipse").font(.caption).foregroundColor(.secondary) }; Spacer() }.padding(.vertical, 6) }
+}
+
+struct FamilyCoursesView: View {
+    var body: some View {
+        ScrollView { VStack(spacing: 16) {
+            DZCard { VStack(alignment: .leading, spacing: 12) { Label("Corso attivo", systemImage: "checkmark.seal.fill").foregroundColor(.green).font(.caption.bold()); Text("Danza Classica").font(.title2.bold()); Text("Insegnante: Giulia Ferri").foregroundColor(.secondary); Divider(); LabeledContent("Giorni", value: "Martedì e giovedì"); LabeledContent("Orario", value: "17:00"); LabeledContent("Sala", value: "Étoile") }.frame(maxWidth: .infinity, alignment: .leading) }
+            DZCard { VStack(alignment: .leading, spacing: 10) { Text("Prossimo saggio").font(.headline); Text("Saggio d’estate • 28 giugno").font(.title3.bold()); Text("Costume confermato • Quota pagata").font(.caption).foregroundColor(.secondary) }.frame(maxWidth: .infinity, alignment: .leading) }
+        }.padding() }.background(ScreenBackground()).navigationTitle("I miei corsi")
+    }
+}
+
+struct FamilyDocumentsView: View {
+    var body: some View {
+        List {
+            Section("Certificato medico") { Label("Valido fino al 12/02/2027", systemImage: "checkmark.shield.fill").foregroundColor(.green); Label("Carica nuovo certificato", systemImage: "square.and.arrow.up") }
+            Section("Pagamenti") { LabeledContent("Quota luglio", value: "Pagata"); LabeledContent("Saggio estivo", value: "Pagata"); Label("Storico ricevute", systemImage: "doc.text.magnifyingglass") }
+            Section("Moduli") { Label("Regolamento scuola", systemImage: "doc.text.fill"); Label("Autorizzazione immagini", systemImage: "signature") }
+        }.navigationTitle("Documenti")
     }
 }

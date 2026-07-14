@@ -57,6 +57,7 @@ struct AuthFlowView: View {
     @State private var school = ""
     @State private var vat = ""
     @State private var showRequest = false
+    @State private var selectedRole: UserRole = .teacher
 
     var body: some View {
         ZStack { ScreenBackground(); ScrollView { VStack(spacing: 20) { header; if route == .school { Picker("", selection: $mode) { Text("Accedi").tag(0); Text("Richiedi attivazione").tag(1) }.pickerStyle(.segmented); schoolContent } else { inviteContent }; demoSection }.padding() } }
@@ -68,8 +69,8 @@ struct AuthFlowView: View {
         if mode == 0 { DZCard { VStack(spacing: 14) { TextField("Email della scuola", text: $email).textContentType(.emailAddress).textInputAutocapitalization(.never); SecureField("Password", text: $password); Button("Accedi") { store.enterDemo(role: .owner) }.buttonStyle(PrimaryButtonStyle()) } } }
         else { DZCard { VStack(spacing: 14) { TextField("Nome legale della scuola", text: $school); TextField("Partita IVA o Codice Fiscale", text: $vat); TextField("Email istituzionale", text: $email).textInputAutocapitalization(.never); Text("La registrazione non attiva subito l’account: controlliamo i dati della scuola prima di approvarla.").font(.caption).foregroundColor(.secondary); Button("Invia richiesta di verifica") { showRequest = true }.buttonStyle(PrimaryButtonStyle()) } } }
     }
-    private var inviteContent: some View { DZCard { VStack(spacing: 14) { TextField("Codice invito (es. DZ-482915)", text: $inviteCode).textInputAutocapitalization(.characters); TextField("Email", text: $email).textInputAutocapitalization(.never); SecureField("Password", text: $password); Text("Il codice viene generato dalla segreteria ed è associato al ruolo corretto: insegnante, genitore o allievo.").font(.caption).foregroundColor(.secondary); Button("Continua") { store.enterDemo(role: route == .staff ? .teacher : .parent) }.buttonStyle(PrimaryButtonStyle()) } } }
-    private var demoSection: some View { Button { store.enterDemo(role: route == .school ? .owner : route == .staff ? .teacher : .parent) } label: { Label("Apri accesso demo", systemImage: "sparkles").font(.headline).foregroundColor(.dzPurple).frame(maxWidth: .infinity).padding() }.background(Color.dzPurple.opacity(0.10)).clipShape(RoundedRectangle(cornerRadius: 18)) }
+    private var inviteContent: some View { DZCard { VStack(spacing: 14) { Picker("Ruolo", selection: $selectedRole) { ForEach(route == .staff ? [UserRole.secretary, UserRole.teacher] : [UserRole.parent, UserRole.student]) { role in Text(role.rawValue).tag(role) } }.pickerStyle(.segmented); TextField("Codice invito (es. DZ-482915)", text: $inviteCode).textInputAutocapitalization(.characters); TextField("Email", text: $email).textInputAutocapitalization(.never); SecureField("Password", text: $password); Text("Il codice viene generato dalla scuola ed è valido solo per il ruolo indicato nell’invito.").font(.caption).foregroundColor(.secondary); Button("Continua") { store.enterDemo(role: selectedRole) }.buttonStyle(PrimaryButtonStyle()) } } }
+    private var demoSection: some View { Button { store.enterDemo(role: route == .school ? .owner : selectedRole) } label: { Label("Apri accesso demo", systemImage: "sparkles").font(.headline).foregroundColor(.dzPurple).frame(maxWidth: .infinity).padding() }.background(Color.dzPurple.opacity(0.10)).clipShape(RoundedRectangle(cornerRadius: 18)) }
 }
 
 struct PrimaryButtonStyle: ButtonStyle { func makeBody(configuration: Configuration) -> some View { configuration.label.font(.headline).foregroundColor(.white).frame(maxWidth: .infinity).padding(.vertical, 14).background(BrandGradient()).clipShape(RoundedRectangle(cornerRadius: 16)).opacity(configuration.isPressed ? 0.8 : 1) } }
