@@ -258,7 +258,7 @@ struct ManageCourseStudentsView: View {
                         }
                     }
 
-                    Section("Tutti gli allievi") {
+                    Section {
                         if filteredStudents.isEmpty {
                             VStack(spacing: 8) {
                                 Image(systemName: "person.crop.circle.badge.xmark")
@@ -304,6 +304,8 @@ struct ManageCourseStudentsView: View {
                                 .buttonStyle(.plain)
                             }
                         }
+                    } header: {
+                        Text("Tutti gli allievi")
                     } footer: {
                         Text("Se un allievo è già assegnato a un altro corso, selezionandolo verrà spostato in questo corso.")
                     }
