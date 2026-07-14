@@ -17,7 +17,7 @@ final class AppStore: ObservableObject {
     @Published var students: [Student] = [
         Student(name: "Alice Romano", course: "Danza Classica", age: 14, paymentStatus: .paid, medicalStatus: .valid, attendanceRate: 96),
         Student(name: "Matteo Bianchi", course: "Hip Hop Teen", age: 16, paymentStatus: .due, medicalStatus: .expiring, attendanceRate: 88),
-        Student(name: "Sofia Ricci", course: "Propedeutica", age: 8, paymentStatus: .paid, medicalStatus: .valid, attendanceRate: 100),
+        Student(name: "Sofia Ricci", course: "Danza Classica", age: 8, paymentStatus: .paid, medicalStatus: .valid, attendanceRate: 100),
         Student(name: "Luca Esposito", course: "Latino Avanzato", age: 23, paymentStatus: .late, medicalStatus: .expired, attendanceRate: 73)
     ]
     @Published var announcements: [Announcement] = [
@@ -26,6 +26,23 @@ final class AppStore: ObservableObject {
     ]
 
     var trialDaysRemaining: Int { max(0, 14 - (Calendar.current.dateComponents([.day], from: trialStart, to: Date()).day ?? 0)) }
+    var overduePaymentsCount: Int { students.filter { $0.paymentStatus == .late }.count }
+    var medicalAlertsCount: Int { students.filter { $0.medicalStatus != .valid }.count }
+
     func enterDemo(role: UserRole) { userRole = role; isAuthenticated = true }
     func logout() { isAuthenticated = false }
+
+    func setPayment(_ status: PaymentStatus, for studentID: UUID) {
+        guard let index = students.firstIndex(where: { $0.id == studentID }) else { return }
+        students[index].paymentStatus = status
+    }
+
+    func setMedical(_ status: MedicalStatus, for studentID: UUID) {
+        guard let index = students.firstIndex(where: { $0.id == studentID }) else { return }
+        students[index].medicalStatus = status
+    }
+
+    func addAnnouncement(title: String, body: String, audience: String) {
+        announcements.insert(Announcement(title: title, body: body, audience: audience), at: 0)
+    }
 }

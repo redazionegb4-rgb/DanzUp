@@ -143,3 +143,30 @@ struct FamilyDocumentsView: View {
         }.navigationTitle("Documenti")
     }
 }
+
+struct FamilyAttendanceView: View {
+    var body: some View {
+        List {
+            Section("Riepilogo") { LabeledContent("Presenze", value: "24"); LabeledContent("Assenze", value: "1"); LabeledContent("Percentuale", value: "96%") }
+            Section("Ultime lezioni") { Label("10 luglio • Presente", systemImage: "checkmark.circle.fill").foregroundColor(.green); Label("3 luglio • Presente", systemImage: "checkmark.circle.fill").foregroundColor(.green); Label("26 giugno • Assente", systemImage: "xmark.circle.fill").foregroundColor(.red) }
+        }.navigationTitle("Le mie presenze")
+    }
+}
+
+struct FamilyPaymentsView: View {
+    var body: some View {
+        List {
+            Section("Situazione") { LabeledContent("Luglio", value: "Pagata"); LabeledContent("Importo", value: "€50,00"); LabeledContent("Metodo", value: "Bonifico") }
+            Section("Ricevute") { Label("Ricevuta luglio 2026", systemImage: "doc.text.fill"); Label("Ricevuta giugno 2026", systemImage: "doc.text.fill") }
+        }.navigationTitle("Quote e ricevute")
+    }
+}
+
+struct FamilyMedicalView: View {
+    var body: some View {
+        List {
+            Section("Certificato medico") { LabeledContent("Stato", value: "Valido"); LabeledContent("Scadenza", value: "18/11/2026") }
+            Section("Documento") { Label("Visualizza certificato", systemImage: "doc.fill"); Label("Carica nuovo certificato", systemImage: "square.and.arrow.up.fill") }
+        }.navigationTitle("Certificato")
+    }
+}

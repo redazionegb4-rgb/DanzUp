@@ -1,11 +1,16 @@
-DanzUp — Build 10
+DanzUp 1.0 - Build 11
 Compatibile con Xcode 15 e iOS 16.
 
-Correzioni principali:
-- accesso Genitore/Allievo collegato al ruolo corretto;
-- riquadri Da controllare completamente cliccabili;
-- collegamenti rapidi da Home a quote, certificati, avvisi e inviti;
-- lezioni e metriche della Home aprono le relative sezioni;
-- dashboard differenziata meglio per proprietario, staff, genitore e allievo.
+Novità principali:
+- collegamenti reali dalle dashboard per tutti i ruoli;
+- filtri diretti per quote scadute e certificati da controllare;
+- registrazione e modifica dello stato dei pagamenti;
+- modifica dello stato dei certificati medici;
+- pubblicazione delle comunicazioni con aggiornamento immediato della lista;
+- azioni rapide della Home ora completamente cliccabili;
+- dettagli allievo collegati a pagamento, presenze, certificato e comunicazioni;
+- dettagli corso collegati al registro presenze;
+- area famiglia con presenze, quote, ricevute e certificato;
+- metriche della Home calcolate dai dati demo.
 
-Nota: dati, login e pagamenti sono ancora dimostrativi locali.
+Nota: i dati sono ancora locali e dimostrativi. Database online, login reale e StoreKit verranno collegati nelle build successive.

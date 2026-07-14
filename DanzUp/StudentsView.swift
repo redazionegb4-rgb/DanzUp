@@ -78,9 +78,10 @@ struct StudentDetailView: View {
                 LabeledContent("Presenze", value: "\(student.attendanceRate)%")
             }
             Section("Azioni rapide") {
-                Label("Registra pagamento", systemImage: "eurosign.circle")
-                Label("Segna presenza", systemImage: "checkmark.circle")
-                Label("Invia comunicazione", systemImage: "paperplane")
+                NavigationLink { PaymentsManagementView(initialFilter: student.paymentStatus == .late ? "Scadute" : "Tutte") } label: { Label("Registra pagamento", systemImage: "eurosign.circle") }
+                NavigationLink { OwnerAttendanceView() } label: { Label("Segna presenza", systemImage: "checkmark.circle") }
+                NavigationLink { CommunicationsManagementView(openComposerOnAppear: true) } label: { Label("Invia comunicazione", systemImage: "paperplane") }
+                NavigationLink { MedicalCertificatesView(showOnlyAlerts: false) } label: { Label("Gestisci certificato", systemImage: "cross.case.fill") }
             }
         }
         .navigationTitle("Scheda allievo")

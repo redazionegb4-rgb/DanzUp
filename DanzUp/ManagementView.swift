@@ -106,7 +106,21 @@ struct OwnerAttendanceView: View {
 
 struct PaymentsManagementView: View {
     @EnvironmentObject var store: AppStore
-    @State private var filter = "Tutte"
+    @State private var filter: String
+    @State private var selectedStudent: Student?
+
+    init(initialFilter: String = "Tutte") {
+        _filter = State(initialValue: initialFilter)
+    }
+
+    private var filteredStudents: [Student] {
+        switch filter {
+        case "Pagate": return store.students.filter { $0.paymentStatus == .paid }
+        case "Da pagare": return store.students.filter { $0.paymentStatus == .due }
+        case "Scadute": return store.students.filter { $0.paymentStatus == .late }
+        default: return store.students
+        }
+    }
 
     var body: some View {
         List {
@@ -120,7 +134,8 @@ struct PaymentsManagementView: View {
                 HStack { FinanceMetric(value: "€4.280", label: "Incassato", tint: .green); FinanceMetric(value: "€630", label: "Da incassare", tint: .orange) }
             }
             Section("Allievi") {
-                ForEach(store.students) { student in
+                ForEach(filteredStudents) { student in
+                    Button { selectedStudent = student } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(student.name).font(.headline)
@@ -129,12 +144,24 @@ struct PaymentsManagementView: View {
                         Spacer()
                         Text(student.paymentStatus.rawValue).font(.caption.bold()).foregroundColor(student.paymentStatus.color)
                     }
+                    }.buttonStyle(.plain)
                 }
             }
-            Section { Label("Registra nuovo pagamento", systemImage: "plus.circle.fill"); Label("Esporta riepilogo", systemImage: "square.and.arrow.up") }
+            Section { Button { selectedStudent = filteredStudents.first } label: { Label("Registra nuovo pagamento", systemImage: "plus.circle.fill") }; Button {} label: { Label("Esporta riepilogo", systemImage: "square.and.arrow.up") } }
         }
         .navigationTitle("Quote")
+        .sheet(item: $selectedStudent) { student in PaymentEditorView(student: student) }
     }
+}
+
+private struct PaymentEditorView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    let student: Student
+    @State private var status: PaymentStatus
+    @State private var amount = "50,00"
+    init(student: Student) { self.student = student; _status = State(initialValue: student.paymentStatus) }
+    var body: some View { NavigationStack { Form { Section("Allievo") { LabeledContent("Nome", value: student.name); LabeledContent("Corso", value: student.course) }; Section("Pagamento") { TextField("Importo", text: $amount).keyboardType(.decimalPad); Picker("Stato", selection: $status) { Text("Pagata").tag(PaymentStatus.paid); Text("Da pagare").tag(PaymentStatus.due); Text("Scaduta").tag(PaymentStatus.late) } } } .navigationTitle("Registra pagamento") .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { store.setPayment(status, for: student.id); dismiss() } } } } }
 }
 
 private struct FinanceMetric: View {
@@ -147,26 +174,43 @@ private struct FinanceMetric: View {
 
 struct MedicalCertificatesView: View {
     @EnvironmentObject var store: AppStore
+    let showOnlyAlerts: Bool
+    @State private var selectedStudent: Student?
+    init(showOnlyAlerts: Bool = false) { self.showOnlyAlerts = showOnlyAlerts }
+    private var visibleStudents: [Student] { showOnlyAlerts ? store.students.filter { $0.medicalStatus != .valid } : store.students }
     var body: some View {
         List {
             Section("Scadenze") {
-                ForEach(store.students) { student in
+                ForEach(visibleStudents) { student in
+                    Button { selectedStudent = student } label: {
                     HStack {
                         VStack(alignment: .leading) { Text(student.name).font(.headline); Text(student.course).font(.caption).foregroundColor(.secondary) }
                         Spacer()
                         Text(student.medicalStatus.rawValue).font(.caption.bold()).foregroundColor(student.medicalStatus.color)
                     }
+                    }.buttonStyle(.plain)
                 }
             }
-            Section("Azioni") { Label("Invia promemoria scadenze", systemImage: "bell.badge.fill"); Label("Carica certificato", systemImage: "square.and.arrow.up.fill") }
+            Section("Azioni") { Button {} label: { Label("Invia promemoria scadenze", systemImage: "bell.badge.fill") }; Button { selectedStudent = visibleStudents.first } label: { Label("Carica certificato", systemImage: "square.and.arrow.up.fill") } }
         }
         .navigationTitle("Certificati")
+        .sheet(item: $selectedStudent) { student in MedicalEditorView(student: student) }
     }
+}
+
+private struct MedicalEditorView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) var dismiss
+    let student: Student
+    @State private var status: MedicalStatus
+    init(student: Student) { self.student = student; _status = State(initialValue: student.medicalStatus) }
+    var body: some View { NavigationStack { Form { Section("Allievo") { LabeledContent("Nome", value: student.name) }; Section("Certificato") { Picker("Stato", selection: $status) { Text("Valido").tag(MedicalStatus.valid); Text("In scadenza").tag(MedicalStatus.expiring); Text("Scaduto").tag(MedicalStatus.expired) }; DatePicker("Scadenza", selection: .constant(Date()), displayedComponents: .date) } } .navigationTitle("Certificato") .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { store.setMedical(status, for: student.id); dismiss() } } } } }
 }
 
 struct CommunicationsManagementView: View {
     @EnvironmentObject var store: AppStore
-    @State private var showComposer = false
+    @State private var showComposer: Bool
+    init(openComposerOnAppear: Bool = false) { _showComposer = State(initialValue: openComposerOnAppear) }
 
     var body: some View {
         List {
@@ -187,6 +231,7 @@ struct CommunicationsManagementView: View {
 }
 
 private struct CommunicationComposerView: View {
+    @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
     @State private var title = ""
     @State private var message = ""
@@ -200,7 +245,7 @@ private struct CommunicationComposerView: View {
                 Section { Toggle("Invia notifica push", isOn: .constant(true)) }
             }
             .navigationTitle("Nuovo avviso")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Pubblica") { dismiss() }.disabled(title.isEmpty || message.isEmpty) } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Pubblica") { store.addAnnouncement(title: title, body: message, audience: audience); dismiss() }.disabled(title.isEmpty || message.isEmpty) } }
         }
     }
 }

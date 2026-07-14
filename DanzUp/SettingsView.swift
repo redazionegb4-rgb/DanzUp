@@ -62,7 +62,7 @@ private struct OwnerSettingsView: View {
                 Toggle(isOn: $notificationsEnabled) { Label("Notifiche", systemImage: "bell.fill") }
             }
 
-            CommonInformationSection(build: "9")
+            CommonInformationSection(build: "11")
             LogoutSection()
         }
         .navigationTitle("Scuola")
@@ -106,7 +106,7 @@ private struct StaffProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "9")
+            CommonInformationSection(build: "11")
             LogoutSection()
         }
         .navigationTitle("Profilo")
@@ -160,7 +160,7 @@ private struct FamilyProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "9")
+            CommonInformationSection(build: "11")
             LogoutSection()
         }
         .navigationTitle("Profilo")

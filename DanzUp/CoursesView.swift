@@ -86,7 +86,7 @@ struct CourseDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Button("Apri registro presenze") {}
+                NavigationLink { OwnerAttendanceView() } label: { Text("Apri registro presenze").frame(maxWidth: .infinity) }
                     .buttonStyle(.borderedProminent)
                     .tint(Color.dzPurple)
                     .controlSize(.large)
