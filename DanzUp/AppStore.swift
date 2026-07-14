@@ -13,6 +13,7 @@ final class AppStore: ObservableObject {
     @Published var students: [Student] = AppStore.demoStudents
     @Published var announcements: [Announcement] = AppStore.demoAnnouncements
     @Published var attendanceByCourse: [String: Set<UUID>] = [:]
+    @Published var inviteCodes: [InviteCode] = AppStore.demoInviteCodes
     @Published var lastSavedAt: Date?
 
     private let persistenceKey = "DanzUp.LocalData.v13"
@@ -131,11 +132,57 @@ final class AppStore: ObservableObject {
         attendanceByCourse[courseTitle, default: []].contains(studentID)
     }
 
+    func createInvite(role: UserRole, maxUses: Int) -> InviteCode {
+        let prefix: String
+        switch role {
+        case .secretary: prefix = "SEG"
+        case .teacher: prefix = "DOC"
+        case .parent, .student: prefix = "FAM"
+        case .owner: prefix = "OWN"
+        }
+        var generated = ""
+        repeat { generated = "\(prefix)-\(Int.random(in: 100000...999999))" }
+        while inviteCodes.contains(where: { $0.code == generated })
+        let invite = InviteCode(code: generated, role: role, maxUses: maxUses)
+        inviteCodes.insert(invite, at: 0)
+        saveLocalData()
+        return invite
+    }
+
+    func toggleInvite(_ id: UUID) {
+        guard let index = inviteCodes.firstIndex(where: { $0.id == id }) else { return }
+        inviteCodes[index].isActive.toggle()
+        saveLocalData()
+    }
+
+    func regenerateInvite(_ id: UUID) {
+        guard let index = inviteCodes.firstIndex(where: { $0.id == id }) else { return }
+        let role = inviteCodes[index].role
+        let prefix: String
+        switch role {
+        case .secretary: prefix = "SEG"
+        case .teacher: prefix = "DOC"
+        case .parent, .student: prefix = "FAM"
+        case .owner: prefix = "OWN"
+        }
+        inviteCodes[index].code = "\(prefix)-\(Int.random(in: 100000...999999))"
+        inviteCodes[index].usedCount = 0
+        inviteCodes[index].isActive = true
+        inviteCodes[index].createdAt = Date()
+        saveLocalData()
+    }
+
+    func deleteInvite(_ id: UUID) {
+        inviteCodes.removeAll { $0.id == id }
+        saveLocalData()
+    }
+
     func resetDemoData() {
         courses = Self.demoCourses
         students = Self.demoStudents
         announcements = Self.demoAnnouncements
         attendanceByCourse = [:]
+        inviteCodes = Self.demoInviteCodes
         trialStart = Date()
         saveLocalData()
     }
@@ -151,7 +198,8 @@ final class AppStore: ObservableObject {
             courses: courses,
             students: students,
             announcements: announcements,
-            attendanceByCourse: attendanceByCourse.mapValues(Array.init)
+            attendanceByCourse: attendanceByCourse.mapValues(Array.init),
+            inviteCodes: inviteCodes
         )
         do {
             let data = try JSONEncoder().encode(snapshot)
@@ -177,6 +225,7 @@ final class AppStore: ObservableObject {
             students = snapshot.students
             announcements = snapshot.announcements
             attendanceByCourse = snapshot.attendanceByCourse.mapValues(Set.init)
+            inviteCodes = snapshot.inviteCodes ?? Self.demoInviteCodes
         } catch {
             UserDefaults.standard.removeObject(forKey: persistenceKey)
         }
@@ -192,7 +241,14 @@ final class AppStore: ObservableObject {
         var students: [Student]
         var announcements: [Announcement]
         var attendanceByCourse: [String: [UUID]]
+        var inviteCodes: [InviteCode]?
     }
+
+    static let demoInviteCodes: [InviteCode] = [
+        InviteCode(code: "DOC-482103", role: .teacher, maxUses: 3, usedCount: 1),
+        InviteCode(code: "SEG-729412", role: .secretary, maxUses: 2, usedCount: 1),
+        InviteCode(code: "FAM-156824", role: .parent, maxUses: 15, usedCount: 3)
+    ]
 
     static let demoCourses: [DanceCourse] = [
         DanceCourse(title: "Danza Classica", teacher: "Giulia Ferri", day: "Lunedì", time: "17:00", room: "Sala Étoile", enrolled: 18, capacity: 22, style: "Classica"),

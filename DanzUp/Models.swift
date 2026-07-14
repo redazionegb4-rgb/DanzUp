@@ -28,3 +28,20 @@ enum PaymentStatus: String, Codable { case paid = "Pagata", due = "Da pagare", l
 enum MedicalStatus: String, Codable { case valid = "Valido", expiring = "In scadenza", expired = "Scaduto"; var color: Color { switch self { case .valid: return .green; case .expiring: return .orange; case .expired: return .red } } }
 struct Student: Identifiable, Codable { var id = UUID(); var name: String; var course: String; var age: Int; var paymentStatus: PaymentStatus; var medicalStatus: MedicalStatus; var attendanceRate: Int }
 struct Announcement: Identifiable, Codable { var id = UUID(); var title: String; var body: String; var audience: String; var date = Date() }
+
+struct InviteCode: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var code: String
+    var role: UserRole
+    var maxUses: Int
+    var usedCount: Int = 0
+    var isActive: Bool = true
+    var createdAt: Date = Date()
+
+    var remainingUses: Int { max(0, maxUses - usedCount) }
+    var statusText: String {
+        if !isActive { return "Disattivato" }
+        if remainingUses == 0 { return "Esaurito" }
+        return remainingUses == 1 ? "1 utilizzo rimasto" : "\(remainingUses) utilizzi rimasti"
+    }
+}

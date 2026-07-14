@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ManagementView: View {
     private let items: [ManagementItem] = [
@@ -311,53 +312,128 @@ struct EventsManagementView: View {
 }
 
 struct InviteCenterView: View {
+    @EnvironmentObject var store: AppStore
     @State private var showNewInvite = false
+    @State private var copiedCode: String?
+    @State private var inviteToDelete: InviteCode?
 
     var body: some View {
         List {
-            Section("Codici attivi") {
-                InviteRow(code: "DOC-4821", role: "Insegnante", uses: "2 utilizzi rimasti", tint: .dzPurple)
-                InviteRow(code: "SEG-7294", role: "Segreteria", uses: "1 utilizzo rimasto", tint: .indigo)
-                InviteRow(code: "FAM-1568", role: "Genitore / Allievo", uses: "12 utilizzi rimasti", tint: .green)
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "shield.checkered").font(.title2).foregroundColor(.dzPurple)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Accessi controllati").font(.headline)
+                        Text("Solo la scuola può generare, disattivare o eliminare i codici.").font(.caption).foregroundColor(.secondary)
+                    }
+                }
             }
-            Section("Staff") {
-                Label("Giulia Ferri • Insegnante", systemImage: "figure.dance")
-                Label("Marco De Luca • Insegnante", systemImage: "figure.dance")
-                Label("Elena Rossi • Segreteria", systemImage: "person.crop.rectangle.stack.fill")
+
+            Section("Codici di accesso") {
+                if store.inviteCodes.isEmpty {
+                    VStack(spacing: 8) { Image(systemName: "qrcode").font(.largeTitle).foregroundColor(.secondary); Text("Nessun codice").font(.headline); Text("Genera il primo codice per invitare staff o famiglie.").font(.caption).foregroundColor(.secondary) }.frame(maxWidth: .infinity).padding(.vertical, 20)
+                } else {
+                    ForEach(store.inviteCodes) { invite in
+                        InviteRow(invite: invite, copiedCode: $copiedCode)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) { inviteToDelete = invite } label: { Label("Elimina", systemImage: "trash") }
+                                Button { store.regenerateInvite(invite.id) } label: { Label("Rigenera", systemImage: "arrow.clockwise") }.tint(.orange)
+                            }
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button { store.toggleInvite(invite.id) } label: {
+                                    Label(invite.isActive ? "Disattiva" : "Attiva", systemImage: invite.isActive ? "pause.circle" : "play.circle")
+                                }.tint(invite.isActive ? .gray : .green)
+                            }
+                    }
+                }
             }
-            Section { Button { showNewInvite = true } label: { Label("Genera nuovo invito", systemImage: "qrcode") } }
+
+            Section {
+                Button { showNewInvite = true } label: { Label("Genera nuovo codice", systemImage: "qrcode.viewfinder") }
+            } footer: {
+                Text("Scorri un codice verso sinistra per rigenerarlo o eliminarlo; verso destra per attivarlo o disattivarlo.")
+            }
         }
-        .navigationTitle("Staff e inviti")
-        .sheet(isPresented: $showNewInvite) { NewInviteView() }
+        .navigationTitle("Inviti e codici")
+        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { showNewInvite = true } label: { Image(systemName: "plus") } } }
+        .sheet(isPresented: $showNewInvite) {
+            NewInviteView { role, uses in
+                let invite = store.createInvite(role: role, maxUses: uses)
+                copiedCode = invite.code
+            }
+        }
+        .alert("Codice copiato", isPresented: Binding(get: { copiedCode != nil }, set: { if !$0 { copiedCode = nil } })) {
+            Button("OK") { copiedCode = nil }
+        } message: { Text(copiedCode ?? "") }
+        .confirmationDialog("Eliminare questo codice?", isPresented: Binding(get: { inviteToDelete != nil }, set: { if !$0 { inviteToDelete = nil } }), titleVisibility: .visible) {
+            Button("Elimina", role: .destructive) { if let inviteToDelete { store.deleteInvite(inviteToDelete.id) }; inviteToDelete = nil }
+            Button("Annulla", role: .cancel) { inviteToDelete = nil }
+        }
     }
 }
 
 private struct InviteRow: View {
-    let code: String; let role: String; let uses: String; let tint: Color
+    let invite: InviteCode
+    @Binding var copiedCode: String?
+
+    private var tint: Color {
+        switch invite.role { case .teacher: return .dzPurple; case .secretary: return .indigo; case .parent, .student: return .green; case .owner: return .blue }
+    }
+
     var body: some View {
-        HStack {
-            Image(systemName: "qrcode").font(.title2).foregroundColor(tint)
-            VStack(alignment: .leading) { Text(code).font(.headline.monospaced()); Text("\(role) • \(uses)").font(.caption).foregroundColor(.secondary) }
-            Spacer()
-            Image(systemName: "doc.on.doc").foregroundColor(.secondary)
-        }
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "qrcode").font(.title2).foregroundColor(invite.isActive ? tint : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(invite.code).font(.headline.monospaced()).textSelection(.enabled)
+                    Text("\(invite.role.rawValue) • \(invite.statusText)").font(.caption).foregroundColor(invite.isActive ? .secondary : .red)
+                }
+                Spacer()
+                Circle().fill(invite.isActive && invite.remainingUses > 0 ? Color.green : Color.gray).frame(width: 9, height: 9)
+            }
+            HStack {
+                Button {
+                    UIPasteboard.general.string = invite.code
+                    copiedCode = invite.code
+                } label: { Label("Copia", systemImage: "doc.on.doc") }
+                .buttonStyle(.bordered)
+
+                ShareLink(item: "Codice DanzUp per \(invite.role.rawValue): \(invite.code)") {
+                    Label("Condividi", systemImage: "square.and.arrow.up")
+                }.buttonStyle(.bordered)
+            }.font(.caption)
+        }.padding(.vertical, 4)
     }
 }
 
 private struct NewInviteView: View {
-    @Environment(\.dismiss) var dismiss
-    @State private var role = "Insegnante"
+    @Environment(\.dismiss) private var dismiss
+    @State private var role: UserRole = .teacher
     @State private var uses = 1
+    let onGenerate: (UserRole, Int) -> Void
 
     var body: some View {
         NavigationStack {
             Form {
-                Picker("Ruolo", selection: $role) { ForEach(["Segreteria", "Insegnante", "Genitore / Allievo"], id: \.self) { Text($0) } }
-                Stepper("Numero di utilizzi: \(uses)", value: $uses, in: 1...50)
-                Section { Text("Il codice consentirà solo l’accesso al ruolo selezionato e potrà essere disattivato dalla scuola.").font(.caption).foregroundColor(.secondary) }
+                Section("Destinatario") {
+                    Picker("Ruolo", selection: $role) {
+                        Text("Segreteria").tag(UserRole.secretary)
+                        Text("Insegnante").tag(UserRole.teacher)
+                        Text("Genitore / Allievo").tag(UserRole.parent)
+                    }
+                }
+                Section("Validità") {
+                    Stepper("Utilizzi consentiti: \(uses)", value: $uses, in: 1...100)
+                    Text("Ogni registrazione consuma un utilizzo. Il codice può essere disattivato in qualsiasi momento.").font(.caption).foregroundColor(.secondary)
+                }
             }
-            .navigationTitle("Nuovo invito")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Genera") { dismiss() } } }
+            .navigationTitle("Nuovo codice")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Genera") { onGenerate(role, uses); dismiss() }.fontWeight(.semibold) }
+            }
         }
     }
 }
+
