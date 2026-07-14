@@ -1,0 +1,13 @@
+DanzUp Build 3 - Xcode 15 / iOS 16+
+
+NOVITÀ
+- Registrazione scuola separata e soggetta a verifica.
+- Insegnanti, segreteria, genitori e allievi entrano solo tramite codice invito.
+- Accessi distinti per ogni ruolo.
+- Nuova grafica, dashboard, centro gestione e icona.
+- Prova gratuita di 14 giorni e piani simulati.
+
+TEST
+Apri DanzUp.xcodeproj, seleziona il tuo Team e premi Run.
+Nella schermata iniziale usa “Apri accesso demo” per provare i diversi percorsi.
+Questa build usa dati locali: database e abbonamenti Apple verranno collegati nelle build successive.

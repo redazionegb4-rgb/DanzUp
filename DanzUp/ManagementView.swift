@@ -1,61 +1,21 @@
 import SwiftUI
 
 struct ManagementView: View {
-    let items = [
-        ("Presenze", "checkmark.circle.fill", "Registro giornaliero", Color.green),
-        ("Pagamenti", "creditcard.fill", "Quote e scadenze", Color.orange),
-        ("Certificati", "doc.text.fill", "Documenti medici", Color.blue),
-        ("Comunicazioni", "megaphone.fill", "Avvisi alla scuola", Color.dzPink),
-        ("Eventi e saggi", "star.fill", "Prove e spettacoli", Color.dzPurple),
-        ("Insegnanti", "person.2.fill", "Staff e permessi", Color.indigo)
+    private let items: [ManagementItem] = [
+        ManagementItem(title: "Presenze", subtitle: "Registro e recuperi", icon: "checkmark.circle.fill", tint: .green, badge: "Oggi 46"),
+        ManagementItem(title: "Quote", subtitle: "Pagamenti e scadenze", icon: "eurosign.circle.fill", tint: .orange, badge: "7 scadute"),
+        ManagementItem(title: "Certificati", subtitle: "Scadenze mediche", icon: "cross.case.fill", tint: .blue, badge: "4 avvisi"),
+        ManagementItem(title: "Comunicazioni", subtitle: "Messaggi mirati", icon: "megaphone.fill", tint: .dzFuchsia, badge: "2 nuove"),
+        ManagementItem(title: "Saggi ed eventi", subtitle: "Prove, costumi e presenze", icon: "star.fill", tint: .dzPurple, badge: "1 attivo"),
+        ManagementItem(title: "Staff e inviti", subtitle: "Ruoli e codici accesso", icon: "person.2.badge.gearshape.fill", tint: .indigo, badge: "8 membri")
     ]
-
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                ForEach(items, id: \.0) { item in
-                    NavigationLink {
-                        GenericManagementList(title: item.0, icon: item.1)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Image(systemName: item.1)
-                                .font(.title2)
-                                .foregroundStyle(item.3)
-                                .frame(width: 48, height: 48)
-                                .background(item.3.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                            Text(item.0).font(.headline).foregroundStyle(.primary)
-                            Text(item.2).font(.caption).foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 145, alignment: .leading)
-                        .padding(16)
-                        .background(Color(uiColor: .secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    }
-                }
-            }
-            .padding()
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
+        ZStack { ScreenBackground(); ScrollView { VStack(alignment: .leading, spacing: 18) { SectionTitle("Centro gestione", subtitle: "Tutto ciò che serve alla segreteria"); LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 13) { ForEach(items) { item in NavigationLink { ManagementDetailView(item: item) } label: { ManagementTile(item: item) }.buttonStyle(.plain) } } }.padding() } }
         .navigationTitle("Gestione")
     }
 }
 
-struct GenericManagementList: View {
-    let title: String
-    let icon: String
-    var body: some View {
-        List {
-            Section {
-                Label("Riepilogo \(title.lowercased())", systemImage: icon)
-                Label("Aggiungi nuovo elemento", systemImage: "plus.circle.fill")
-                Label("Filtri e ricerca", systemImage: "line.3.horizontal.decrease.circle")
-            }
-            Section("Demo") {
-                Text("Questa sezione è già predisposta nella prima build e verrà collegata al database online nella fase successiva.")
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .navigationTitle(title)
-    }
-}
+struct ManagementItem: Identifiable { let id = UUID(); let title: String; let subtitle: String; let icon: String; let tint: Color; let badge: String }
+private struct ManagementTile: View { let item: ManagementItem; var body: some View { VStack(alignment: .leading, spacing: 12) { HStack { Image(systemName: item.icon).font(.title2).foregroundColor(item.tint).frame(width: 46, height: 46).background(item.tint.opacity(0.12)).clipShape(RoundedRectangle(cornerRadius: 15)); Spacer(); Image(systemName: "arrow.up.right").font(.caption.bold()).foregroundColor(.secondary) }; Text(item.title).font(.headline).foregroundColor(.primary); Text(item.subtitle).font(.caption).foregroundColor(.secondary).lineLimit(2); Text(item.badge).font(.caption2.bold()).foregroundColor(item.tint).padding(.horizontal, 9).padding(.vertical, 5).background(item.tint.opacity(0.10)).clipShape(Capsule()) }.frame(maxWidth: .infinity, minHeight: 165, alignment: .leading).padding(15).background(Color(uiColor: .secondarySystemBackground)).clipShape(RoundedRectangle(cornerRadius: 23)).overlay(RoundedRectangle(cornerRadius: 23).stroke(Color.primary.opacity(0.05))) } }
+
+struct ManagementDetailView: View { let item: ManagementItem; var body: some View { ZStack { ScreenBackground(); ScrollView { VStack(spacing: 16) { DZCard { HStack { Image(systemName: item.icon).font(.largeTitle).foregroundColor(item.tint); VStack(alignment: .leading) { Text(item.title).font(.title2.bold()); Text(item.subtitle).foregroundColor(.secondary) }; Spacer() } }; ForEach(0..<3, id: \.self) { index in DZCard { HStack { Image(systemName: index == 0 ? "chart.bar.fill" : index == 1 ? "clock.fill" : "plus.circle.fill").foregroundColor(item.tint).frame(width: 38, height: 38).background(item.tint.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12)); VStack(alignment: .leading) { Text(index == 0 ? "Riepilogo aggiornato" : index == 1 ? "Attività recenti" : "Aggiungi nuovo elemento").font(.headline); Text("Sezione pronta per il collegamento al database.").font(.caption).foregroundColor(.secondary) }; Spacer(); Image(systemName: "chevron.right").foregroundColor(.secondary) } } } }.padding() } }.navigationTitle(item.title).navigationBarTitleDisplayMode(.inline) } }

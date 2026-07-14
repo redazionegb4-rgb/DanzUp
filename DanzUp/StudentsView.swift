@@ -40,7 +40,7 @@ struct StudentsView: View {
         }
         .navigationTitle("Allievi")
         .searchable(text: $search, prompt: "Cerca allievo o corso")
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showAdd = true } label: { Image(systemName: "person.badge.plus") } } }
+        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { showAdd = true } label: { Image(systemName: "person.badge.plus") } } }
         .sheet(isPresented: $showAdd) { AddStudentView() }
     }
 

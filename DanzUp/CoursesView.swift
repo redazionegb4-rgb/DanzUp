@@ -31,7 +31,7 @@ struct CoursesView: View {
         .navigationTitle("Corsi")
         .searchable(text: $search, prompt: "Cerca corso o insegnante")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button { showAdd = true } label: { Image(systemName: "plus.circle.fill") }
             }
         }
