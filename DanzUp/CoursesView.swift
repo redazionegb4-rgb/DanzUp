@@ -73,6 +73,7 @@ private struct CourseRow: View {
 struct CourseDetailView: View {
     @EnvironmentObject var store: AppStore
     let courseID: UUID
+    @State private var showManageStudents = false
 
     private var course: DanceCourse? { store.courses.first { $0.id == courseID } }
     private var enrolledStudents: [Student] { store.studentsForCourse(courseID) }
@@ -104,7 +105,19 @@ struct CourseDetailView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Allievi iscritti").font(.headline)
                                 if enrolledStudents.isEmpty {
-                                    VStack(spacing: 8) { Image(systemName: "person.crop.circle.badge.plus").font(.largeTitle).foregroundStyle(.secondary); Text("Nessun allievo").font(.headline); Text("Assegna gli allievi a questo corso dalla sezione Allievi.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center) }.frame(maxWidth: .infinity).padding(.vertical, 20)
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "person.crop.circle.badge.plus")
+                                            .font(.largeTitle)
+                                            .foregroundStyle(.secondary)
+                                        Text("Nessun allievo")
+                                            .font(.headline)
+                                        Text("Usa Gestisci iscritti per aggiungere gli allievi direttamente a questo corso.")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 20)
                                 } else {
                                     ForEach(enrolledStudents) { student in
                                         HStack {
@@ -119,10 +132,21 @@ struct CourseDetailView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        NavigationLink { OwnerAttendanceView(initialCourseID: course.id) } label: {
-                            Text("Apri registro presenze").frame(maxWidth: .infinity)
+                        Button {
+                            showManageStudents = true
+                        } label: {
+                            Label("Gestisci iscritti", systemImage: "person.3.sequence.fill")
+                                .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .tint(Color.dzPurple)
+                        .controlSize(.large)
+
+                        NavigationLink { OwnerAttendanceView(initialCourseID: course.id) } label: {
+                            Label("Apri registro presenze", systemImage: "checklist")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
                         .tint(Color.dzPurple)
                         .controlSize(.large)
                     }
@@ -131,6 +155,9 @@ struct CourseDetailView: View {
                 .background(Color(uiColor: .systemGroupedBackground))
                 .navigationTitle(course.title)
                 .navigationBarTitleDisplayMode(.inline)
+                .sheet(isPresented: $showManageStudents) {
+                    ManageCourseStudentsView(courseID: course.id)
+                }
             } else {
                 VStack(spacing: 10) { Image(systemName: "exclamationmark.triangle").font(.largeTitle); Text("Corso non disponibile").font(.headline) }.foregroundStyle(.secondary)
             }
@@ -184,6 +211,110 @@ struct AddCourseView: View {
                         ))
                         dismiss()
                     }
+                }
+            }
+        }
+    }
+}
+
+
+struct ManageCourseStudentsView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    let courseID: UUID
+    @State private var search = ""
+
+    private var course: DanceCourse? {
+        store.courses.first { $0.id == courseID }
+    }
+
+    private var filteredStudents: [Student] {
+        let sorted = store.students.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        guard !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return sorted }
+        return sorted.filter {
+            $0.name.localizedCaseInsensitiveContains(search) ||
+            $0.course.localizedCaseInsensitiveContains(search)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let course {
+                    Section {
+                        HStack(spacing: 12) {
+                            Image(systemName: "figure.dance")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .frame(width: 46, height: 46)
+                                .background(BrandGradient())
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(course.title).font(.headline)
+                                Text("\(store.enrolledCount(for: courseID)) iscritti su \(course.capacity)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    Section("Tutti gli allievi") {
+                        if filteredStudents.isEmpty {
+                            VStack(spacing: 8) {
+                                Image(systemName: "person.crop.circle.badge.xmark")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.secondary)
+                                Text("Nessun allievo").font(.headline)
+                                Text("Crea prima un allievo dalla sezione Allievi.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 24)
+                        } else {
+                            ForEach(filteredStudents) { student in
+                                let isEnrolled = store.isStudent(student.id, enrolledIn: courseID)
+                                Button {
+                                    if isEnrolled {
+                                        store.removeStudent(student.id, fromCourseID: courseID)
+                                    } else {
+                                        store.assignStudent(student.id, toCourseID: courseID)
+                                    }
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: isEnrolled ? "checkmark.circle.fill" : "circle")
+                                            .font(.title3)
+                                            .foregroundStyle(isEnrolled ? Color.dzPurple : Color.secondary)
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(student.name)
+                                                .foregroundStyle(.primary)
+                                            Text(isEnrolled ? "Iscritto a questo corso" : student.course)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        if !isEnrolled && student.course != "Nessun corso" {
+                                            Text("Sposta")
+                                                .font(.caption.bold())
+                                                .foregroundStyle(Color.dzPurple)
+                                        }
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    } footer: {
+                        Text("Se un allievo è già assegnato a un altro corso, selezionandolo verrà spostato in questo corso.")
+                    }
+                }
+            }
+            .navigationTitle("Gestisci iscritti")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $search, prompt: "Cerca allievo")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fine") { dismiss() }
                 }
             }
         }

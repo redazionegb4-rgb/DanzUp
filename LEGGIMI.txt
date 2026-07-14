@@ -11,3 +11,5 @@ Novità:
 - Navigazione diretta al registro del corso corretto.
 
 Aprire DanzUp.xcodeproj, scegliere il proprio Team e avviare Run.
+
+BUILD 21: gestione iscritti direttamente dalla scheda corso, ricerca allievi, aggiunta/rimozione e conteggio aggiornato.

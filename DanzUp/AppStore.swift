@@ -89,6 +89,28 @@ final class AppStore: ObservableObject {
         saveLocalData()
     }
 
+    func assignStudent(_ studentID: UUID, toCourseID courseID: UUID) {
+        guard let studentIndex = students.firstIndex(where: { $0.id == studentID }),
+              let course = courses.first(where: { $0.id == courseID }) else { return }
+        students[studentIndex].course = course.title
+        saveLocalData()
+    }
+
+    func removeStudent(_ studentID: UUID, fromCourseID courseID: UUID) {
+        guard let studentIndex = students.firstIndex(where: { $0.id == studentID }),
+              let course = courses.first(where: { $0.id == courseID }),
+              students[studentIndex].course == course.title else { return }
+        students[studentIndex].course = "Nessun corso"
+        attendanceByCourse[course.title]?.remove(studentID)
+        saveLocalData()
+    }
+
+    func isStudent(_ studentID: UUID, enrolledIn courseID: UUID) -> Bool {
+        guard let student = students.first(where: { $0.id == studentID }),
+              let course = courses.first(where: { $0.id == courseID }) else { return false }
+        return student.course == course.title
+    }
+
     func deleteStudents(at offsets: IndexSet, from visibleStudents: [Student]) {
         let ids = offsets.compactMap { visibleStudents.indices.contains($0) ? visibleStudents[$0].id : nil }
         students.removeAll { ids.contains($0.id) }
