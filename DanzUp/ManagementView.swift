@@ -336,35 +336,17 @@ struct InviteCenterView: View {
                         .foregroundColor(.secondary)
                 } else {
                     ForEach(store.students) { student in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(student.name).font(.headline)
-                                    Text(student.course).font(.caption).foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Text(store.familyCode(for: student.id))
-                                    .font(.system(.subheadline, design: .monospaced).bold())
-                                    .foregroundColor(.dzPurple)
+                        StudentFamilyCodeRow(
+                            student: student,
+                            code: store.familyCode(for: student.id),
+                            onCopy: { code in
+                                UIPasteboard.general.string = code
+                                copiedStudentCode = code
+                            },
+                            onRegenerate: {
+                                store.regenerateFamilyCode(for: student.id)
                             }
-                            HStack {
-                                Button {
-                                    UIPasteboard.general.string = store.familyCode(for: student.id)
-                                    copiedStudentCode = store.familyCode(for: student.id)
-                                } label: { Label("Copia", systemImage: "doc.on.doc") }
-                                Spacer()
-                                ShareLink(item: "Codice personale DanzUp di \(student.name): \(store.familyCode(for: student.id))") {
-                                    Label("Condividi", systemImage: "square.and.arrow.up")
-                                }
-                                Spacer()
-                                Button { store.regenerateFamilyCode(for: student.id) } label: {
-                                    Label("Rigenera", systemImage: "arrow.clockwise")
-                                }
-                                .tint(.orange)
-                            }
-                            .font(.caption)
-                        }
-                        .padding(.vertical, 4)
+                        )
                     }
                 }
             } footer: {
@@ -542,3 +524,57 @@ private struct NewInviteView: View {
     }
 }
 
+
+private struct StudentFamilyCodeRow: View {
+    let student: Student
+    let code: String
+    let onCopy: (String) -> Void
+    let onRegenerate: () -> Void
+
+    private var shareText: String {
+        "Codice personale DanzUp di \(student.name): \(code)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(student.name)
+                        .font(.headline)
+                    Text(student.course)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                Text(code)
+                    .font(.system(.subheadline, design: .monospaced).bold())
+                    .foregroundColor(.dzPurple)
+            }
+
+            HStack {
+                Button {
+                    onCopy(code)
+                } label: {
+                    Label("Copia", systemImage: "doc.on.doc")
+                }
+
+                Spacer()
+
+                ShareLink(item: shareText) {
+                    Label("Condividi", systemImage: "square.and.arrow.up")
+                }
+
+                Spacer()
+
+                Button {
+                    onRegenerate()
+                } label: {
+                    Label("Rigenera", systemImage: "arrow.clockwise")
+                }
+                .tint(.orange)
+            }
+            .font(.caption)
+        }
+        .padding(.vertical, 4)
+    }
+}
