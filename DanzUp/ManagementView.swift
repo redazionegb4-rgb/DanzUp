@@ -320,140 +320,293 @@ struct InviteCenterView: View {
 
     var body: some View {
         List {
-            Section {
-                HStack(spacing: 12) {
-                    Image(systemName: "shield.checkered").font(.title2).foregroundColor(.dzPurple)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Accessi controllati").font(.headline)
-                        Text("Solo la scuola può generare, disattivare o eliminare i codici.").font(.caption).foregroundColor(.secondary)
-                    }
-                }
-            }
+            InviteAccessHeaderSection()
 
-            Section("Codici personali allievi") {
-                if store.students.isEmpty {
-                    Text("Crea prima un allievo per generare il suo codice personale.")
-                        .foregroundColor(.secondary)
-                } else {
-                    ForEach(store.students) { student in
-                        StudentFamilyCodeRow(
-                            student: student,
-                            code: store.familyCode(for: student.id),
-                            onCopy: { code in
-                                UIPasteboard.general.string = code
-                                copiedStudentCode = code
-                            },
-                            onRegenerate: {
-                                store.regenerateFamilyCode(for: student.id)
-                            }
-                        )
-                    }
-                }
-            } footer: {
-                Text("Ogni codice identifica un solo allievo. Il genitore non può vedere né selezionare altri profili. Rigenerando il codice, le richieste ancora in attesa per quello precedente vengono annullate.")
-            }
+            StudentCodesSection(copiedStudentCode: $copiedStudentCode)
 
-            Section("Richieste collegamento figli") {
-                let pending = store.childLinkRequests.filter { $0.status == .pending }
-                if pending.isEmpty {
-                    Text("Nessuna richiesta in attesa.").foregroundColor(.secondary)
-                } else {
-                    ForEach(pending) { request in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "figure.2.and.child.holdinghands").foregroundColor(.dzPurple)
-                                VStack(alignment: .leading) {
-                                    Text(request.studentName).font(.headline)
-                                    Text("Richiesto da \(request.parentName)").font(.caption).foregroundColor(.secondary)
-                                    Text(request.parentEmail).font(.caption2).foregroundColor(.secondary)
-                                }
-                                Spacer()
-                            }
-                            HStack {
-                                Button("Rifiuta", role: .destructive) { store.rejectChildLink(request.id) }
-                                Spacer()
-                                Button("Approva") { store.approveChildLink(request.id) }.buttonStyle(.borderedProminent).tint(.dzPurple)
-                            }
-                        }.padding(.vertical, 4)
-                    }
-                }
-            }
+            PendingChildLinksSection()
 
-            Section("Codici di accesso") {
-                if store.inviteCodes.isEmpty {
-                    VStack(spacing: 8) { Image(systemName: "qrcode").font(.largeTitle).foregroundColor(.secondary); Text("Nessun codice").font(.headline); Text("Genera il primo codice per invitare staff o famiglie.").font(.caption).foregroundColor(.secondary) }.frame(maxWidth: .infinity).padding(.vertical, 20)
-                } else {
-                    ForEach(store.inviteCodes) { invite in
-                        InviteRow(invite: invite, copiedCode: $copiedCode)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) { inviteToDelete = invite } label: { Label("Elimina", systemImage: "trash") }
-                                Button { store.regenerateInvite(invite.id) } label: { Label("Rigenera", systemImage: "arrow.clockwise") }.tint(.orange)
-                            }
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button { store.toggleInvite(invite.id) } label: {
-                                    Label(invite.isActive ? "Disattiva" : "Attiva", systemImage: invite.isActive ? "pause.circle" : "play.circle")
-                                }.tint(invite.isActive ? .gray : .green)
-                            }
-                    }
-                }
-            }
+            AccessCodesSection(
+                copiedCode: $copiedCode,
+                inviteToDelete: $inviteToDelete
+            )
 
-            Section("Utenti collegati alla scuola") {
-                if store.schoolMembers.isEmpty {
-                    Text("Nessun utente ha ancora utilizzato un codice.").foregroundColor(.secondary)
-                } else {
-                    ForEach(store.schoolMembers) { member in
-                        HStack(spacing: 12) {
-                            Image(systemName: member.role.icon)
-                                .foregroundColor(member.isActive ? .dzPurple : .secondary)
-                                .frame(width: 34, height: 34)
-                                .background(Color.dzPurple.opacity(0.10))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(member.name).font(.headline)
-                                Text("\(member.role.rawValue) • \(member.email)").font(.caption).foregroundColor(.secondary)
-                                Text("Codice usato: \(member.inviteCode)").font(.caption2).foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Text(member.isActive ? "Attivo" : "Bloccato")
-                                .font(.caption.bold())
-                                .foregroundColor(member.isActive ? .green : .red)
-                        }
-                        .swipeActions(edge: .leading) {
-                            Button { store.toggleMember(member.id) } label: {
-                                Label(member.isActive ? "Blocca" : "Riattiva", systemImage: member.isActive ? "lock" : "lock.open")
-                            }.tint(member.isActive ? .orange : .green)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) { store.deleteMember(member.id) } label: { Label("Rimuovi", systemImage: "trash") }
-                        }
-                    }
-                }
-            }
+            ConnectedMembersSection()
 
             Section {
-                Button { showNewInvite = true } label: { Label("Genera nuovo codice", systemImage: "qrcode.viewfinder") }
+                Button { showNewInvite = true } label: {
+                    Label("Genera nuovo codice", systemImage: "qrcode.viewfinder")
+                }
             } footer: {
                 Text("Scorri un codice verso sinistra per rigenerarlo o eliminarlo; verso destra per attivarlo o disattivarlo.")
             }
         }
         .navigationTitle("Inviti e codici")
-        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { showNewInvite = true } label: { Image(systemName: "plus") } } }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showNewInvite = true } label: { Image(systemName: "plus") }
+            }
+        }
         .sheet(isPresented: $showNewInvite) {
             NewInviteView { role, uses in
                 let invite = store.createInvite(role: role, maxUses: uses)
                 copiedCode = invite.code
             }
         }
-        .alert("Codice copiato", isPresented: Binding(get: { copiedCode != nil }, set: { if !$0 { copiedCode = nil } })) {
+        .alert("Codice copiato", isPresented: copiedCodeAlertBinding) {
             Button("OK") { copiedCode = nil }
-        } message: { Text(copiedCode ?? "") }
-        .alert("Codice allievo copiato", isPresented: Binding(get: { copiedStudentCode != nil }, set: { if !$0 { copiedStudentCode = nil } })) {
+        } message: {
+            Text(copiedCode ?? "")
+        }
+        .alert("Codice allievo copiato", isPresented: studentCodeAlertBinding) {
             Button("OK") { copiedStudentCode = nil }
-        } message: { Text(copiedStudentCode ?? "") }
-        .confirmationDialog("Eliminare questo codice?", isPresented: Binding(get: { inviteToDelete != nil }, set: { if !$0 { inviteToDelete = nil } }), titleVisibility: .visible) {
-            Button("Elimina", role: .destructive) { if let inviteToDelete { store.deleteInvite(inviteToDelete.id) }; inviteToDelete = nil }
+        } message: {
+            Text(copiedStudentCode ?? "")
+        }
+        .confirmationDialog(
+            "Eliminare questo codice?",
+            isPresented: deleteDialogBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Elimina", role: .destructive) {
+                guard let invite = inviteToDelete else { return }
+                store.deleteInvite(invite.id)
+                inviteToDelete = nil
+            }
             Button("Annulla", role: .cancel) { inviteToDelete = nil }
+        }
+    }
+
+    private var copiedCodeAlertBinding: Binding<Bool> {
+        Binding(
+            get: { copiedCode != nil },
+            set: { newValue in if !newValue { copiedCode = nil } }
+        )
+    }
+
+    private var studentCodeAlertBinding: Binding<Bool> {
+        Binding(
+            get: { copiedStudentCode != nil },
+            set: { newValue in if !newValue { copiedStudentCode = nil } }
+        )
+    }
+
+    private var deleteDialogBinding: Binding<Bool> {
+        Binding(
+            get: { inviteToDelete != nil },
+            set: { newValue in if !newValue { inviteToDelete = nil } }
+        )
+    }
+}
+
+private struct InviteAccessHeaderSection: View {
+    var body: some View {
+        Section {
+            HStack(spacing: 12) {
+                Image(systemName: "shield.checkered")
+                    .font(.title2)
+                    .foregroundColor(.dzPurple)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Accessi controllati").font(.headline)
+                    Text("Solo la scuola può generare, disattivare o eliminare i codici.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+}
+
+private struct StudentCodesSection: View {
+    @EnvironmentObject var store: AppStore
+    @Binding var copiedStudentCode: String?
+
+    var body: some View {
+        Section {
+            if store.students.isEmpty {
+                Text("Crea prima un allievo per generare il suo codice personale.")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(store.students) { student in
+                    StudentFamilyCodeRow(
+                        student: student,
+                        code: store.familyCode(for: student.id),
+                        onCopy: { copyCode($0) },
+                        onRegenerate: { store.regenerateFamilyCode(for: student.id) }
+                    )
+                }
+            }
+        } header: {
+            Text("Codici personali allievi")
+        } footer: {
+            Text("Ogni codice identifica un solo allievo. Il genitore non può vedere né selezionare altri profili. Rigenerando il codice, le richieste ancora in attesa per quello precedente vengono annullate.")
+        }
+    }
+
+    private func copyCode(_ code: String) {
+        UIPasteboard.general.string = code
+        copiedStudentCode = code
+    }
+}
+
+private struct PendingChildLinksSection: View {
+    @EnvironmentObject var store: AppStore
+
+    private var pendingRequests: [ChildLinkRequest] {
+        store.childLinkRequests.filter { $0.status == .pending }
+    }
+
+    var body: some View {
+        Section("Richieste collegamento figli") {
+            if pendingRequests.isEmpty {
+                Text("Nessuna richiesta in attesa.")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(pendingRequests) { request in
+                    PendingChildLinkRow(request: request)
+                }
+            }
+        }
+    }
+}
+
+private struct PendingChildLinkRow: View {
+    @EnvironmentObject var store: AppStore
+    let request: ChildLinkRequest
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "figure.2.and.child.holdinghands")
+                    .foregroundColor(.dzPurple)
+                VStack(alignment: .leading) {
+                    Text(request.studentName).font(.headline)
+                    Text("Richiesto da \(request.parentName)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(request.parentEmail)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            HStack {
+                Button("Rifiuta", role: .destructive) {
+                    store.rejectChildLink(request.id)
+                }
+                Spacer()
+                Button("Approva") {
+                    store.approveChildLink(request.id)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.dzPurple)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct AccessCodesSection: View {
+    @EnvironmentObject var store: AppStore
+    @Binding var copiedCode: String?
+    @Binding var inviteToDelete: InviteCode?
+
+    var body: some View {
+        Section("Codici di accesso") {
+            if store.inviteCodes.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "qrcode")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("Nessun codice").font(.headline)
+                    Text("Genera il primo codice per invitare staff o famiglie.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+            } else {
+                ForEach(store.inviteCodes) { invite in
+                    InviteRow(invite: invite, copiedCode: $copiedCode)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) { inviteToDelete = invite } label: {
+                                Label("Elimina", systemImage: "trash")
+                            }
+                            Button { store.regenerateInvite(invite.id) } label: {
+                                Label("Rigenera", systemImage: "arrow.clockwise")
+                            }
+                            .tint(.orange)
+                        }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button { store.toggleInvite(invite.id) } label: {
+                                Label(
+                                    invite.isActive ? "Disattiva" : "Attiva",
+                                    systemImage: invite.isActive ? "pause.circle" : "play.circle"
+                                )
+                            }
+                            .tint(invite.isActive ? .gray : .green)
+                        }
+                }
+            }
+        }
+    }
+}
+
+private struct ConnectedMembersSection: View {
+    @EnvironmentObject var store: AppStore
+
+    var body: some View {
+        Section("Utenti collegati alla scuola") {
+            if store.schoolMembers.isEmpty {
+                Text("Nessun utente ha ancora utilizzato un codice.")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(store.schoolMembers) { member in
+                    ConnectedMemberRow(member: member)
+                }
+            }
+        }
+    }
+}
+
+private struct ConnectedMemberRow: View {
+    @EnvironmentObject var store: AppStore
+    let member: SchoolMember
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: member.role.icon)
+                .foregroundColor(member.isActive ? .dzPurple : .secondary)
+                .frame(width: 34, height: 34)
+                .background(Color.dzPurple.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(member.name).font(.headline)
+                Text("\(member.role.rawValue) • \(member.email)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("Codice usato: \(member.inviteCode)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Text(member.isActive ? "Attivo" : "Bloccato")
+                .font(.caption.bold())
+                .foregroundColor(member.isActive ? .green : .red)
+        }
+        .swipeActions(edge: .leading) {
+            Button { store.toggleMember(member.id) } label: {
+                Label(
+                    member.isActive ? "Blocca" : "Riattiva",
+                    systemImage: member.isActive ? "lock" : "lock.open"
+                )
+            }
+            .tint(member.isActive ? .orange : .green)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) { store.deleteMember(member.id) } label: {
+                Label("Rimuovi", systemImage: "trash")
+            }
         }
     }
 }
