@@ -146,11 +146,133 @@ private struct FamilyLessonRow: View {
 }
 
 struct FamilyCoursesView: View {
+    @EnvironmentObject var store: AppStore
+
+    private var visibleChildren: [Student] {
+        if store.userRole == .parent {
+            return store.linkedChildrenForCurrentParent()
+        }
+        // In modalità demo allievo mostriamo il profilo dimostrativo; con account reali
+        // il database collegherà direttamente l’account allo studentID corretto.
+        return Array(store.students.prefix(1))
+    }
+
     var body: some View {
-        ScrollView { VStack(spacing: 16) {
-            DZCard { VStack(alignment: .leading, spacing: 12) { Label("Corso attivo", systemImage: "checkmark.seal.fill").foregroundColor(.green).font(.caption.bold()); Text("Danza Classica").font(.title2.bold()); Text("Insegnante: Giulia Ferri").foregroundColor(.secondary); Divider(); LabeledContent("Giorni", value: "Martedì e giovedì"); LabeledContent("Orario", value: "17:00"); LabeledContent("Sala", value: "Étoile") }.frame(maxWidth: .infinity, alignment: .leading) }
-            DZCard { VStack(alignment: .leading, spacing: 10) { Text("Prossimo saggio").font(.headline); Text("Saggio d’estate • 28 giugno").font(.title3.bold()); Text("Costume confermato • Quota pagata").font(.caption).foregroundColor(.secondary) }.frame(maxWidth: .infinity, alignment: .leading) }
-        }.padding() }.background(ScreenBackground()).navigationTitle("I miei corsi")
+        ScrollView {
+            VStack(spacing: 16) {
+                if visibleChildren.isEmpty {
+                    DZCard {
+                        VStack(spacing: 12) {
+                            Image(systemName: "person.crop.circle.badge.questionmark")
+                                .font(.system(size: 42))
+                                .foregroundColor(.dzPurple)
+                            Text("Nessun figlio collegato").font(.headline)
+                            Text("Collega un figlio dal Profilo usando il codice personale fornito dalla scuola.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                } else {
+                    ForEach(visibleChildren) { child in
+                        let childCourses = store.coursesForStudent(child.id)
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(child.name).font(.title3.bold())
+                                    Text(childCourses.count == 1 ? "1 corso frequentato" : "\(childCourses.count) corsi frequentati")
+                                        .font(.caption).foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text("\(childCourses.count)")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.dzPurple)
+                            }
+                            .padding(.horizontal, 4)
+
+                            if childCourses.isEmpty {
+                                DZCard {
+                                    Label("Nessun corso assegnato", systemImage: "figure.dance")
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            } else {
+                                ForEach(childCourses) { course in
+                                    NavigationLink {
+                                        FamilyCourseDetailView(course: course, child: child)
+                                    } label: {
+                                        DZCard {
+                                            VStack(alignment: .leading, spacing: 10) {
+                                                HStack(alignment: .top) {
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text(course.title).font(.headline).foregroundColor(.primary)
+                                                        Text(course.style).font(.caption.bold()).foregroundColor(.dzPurple)
+                                                    }
+                                                    Spacer()
+                                                    Image(systemName: "chevron.right")
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                Divider()
+                                                Label("\(course.day) • \(course.time)", systemImage: "calendar")
+                                                    .font(.subheadline).foregroundColor(.secondary)
+                                                Label(course.room, systemImage: "mappin.and.ellipse")
+                                                    .font(.subheadline).foregroundColor(.secondary)
+                                                Label(course.teacher, systemImage: "person.fill")
+                                                    .font(.subheadline).foregroundColor(.secondary)
+                                            }
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                DZCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Prossimo saggio").font(.headline)
+                        Text("Saggio d’estate • 28 giugno").font(.title3.bold())
+                        Text("Costume confermato • Quota pagata").font(.caption).foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding()
+        }
+        .background(ScreenBackground())
+        .navigationTitle("I miei corsi")
+    }
+}
+
+private struct FamilyCourseDetailView: View {
+    let course: DanceCourse
+    let child: Student
+
+    var body: some View {
+        List {
+            Section("Allievo") {
+                LabeledContent("Nome", value: child.name)
+                LabeledContent("Stato", value: "Iscritto")
+            }
+            Section("Corso") {
+                LabeledContent("Disciplina", value: course.title)
+                LabeledContent("Stile", value: course.style)
+                LabeledContent("Giorno", value: course.day)
+                LabeledContent("Orario", value: course.time)
+                LabeledContent("Sala", value: course.room)
+                LabeledContent("Insegnante", value: course.teacher)
+            }
+            Section("Collegamenti") {
+                NavigationLink("Calendario del corso") { FamilyCalendarView() }
+                NavigationLink("Presenze") { FamilyAttendanceView() }
+                NavigationLink("Quote e ricevute") { FamilyPaymentsView() }
+            }
+        }
+        .navigationTitle(course.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

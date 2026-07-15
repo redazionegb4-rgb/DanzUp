@@ -1,0 +1,8 @@
+DanzUp Build 43
+
+Correzione area Genitore/Allievo:
+- La sezione I miei corsi legge ora tutte le iscrizioni reali dell'allievo.
+- Un figlio iscritto a più corsi visualizza ogni corso separatamente.
+- Ogni corso mostra giorno, orario, sala e insegnante.
+- Aggiunto dettaglio corso con collegamenti a calendario, presenze e quote.
+- Il genitore vede soltanto i figli collegati al proprio profilo.
