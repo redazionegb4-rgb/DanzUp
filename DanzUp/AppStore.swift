@@ -25,6 +25,7 @@ final class AppStore: ObservableObject {
 
     init() {
         restoreLocalData()
+        ensureStudentFamilyCodes()
     }
 
     var trialDaysRemaining: Int {
@@ -75,19 +76,53 @@ final class AppStore: ObservableObject {
     }
 
     @discardableResult
-    func requestChildLink(code rawCode: String, studentID: UUID?) -> ChildLinkResult {
+    func requestChildLink(code rawCode: String) -> ChildLinkResult {
         let code = rawCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard !code.isEmpty else { return .emptyCode }
-        guard let studentID, let student = students.first(where: { $0.id == studentID }) else { return .studentNotFound }
-        guard let invite = inviteCodes.first(where: { $0.code.uppercased() == code }) else { return .invalidCode }
-        guard invite.isActive else { return .inactiveCode }
-        guard invite.remainingUses > 0 else { return .exhaustedCode }
-        guard invite.role == .parent || invite.role == .student else { return .wrongCodeRole }
+        guard let student = students.first(where: { $0.familyCode?.uppercased() == code }) else { return .invalidCode }
+        let studentID = student.id
         if linkedChildIDsByParent[currentFamilyEmail, default: []].contains(studentID) { return .alreadyLinked }
         if childLinkRequests.contains(where: { $0.parentEmail == currentFamilyEmail && $0.studentID == studentID && $0.status == .pending }) { return .alreadyPending }
-        childLinkRequests.insert(ChildLinkRequest(parentName: currentFamilyName, parentEmail: currentFamilyEmail, studentID: studentID, studentName: student.name, authorizationCode: invite.code), at: 0)
+        childLinkRequests.insert(
+            ChildLinkRequest(
+                parentName: currentFamilyName,
+                parentEmail: currentFamilyEmail,
+                studentID: studentID,
+                studentName: student.name,
+                authorizationCode: code
+            ),
+            at: 0
+        )
         saveLocalData()
         return .success
+    }
+
+    func familyCode(for studentID: UUID) -> String {
+        guard let student = students.first(where: { $0.id == studentID }) else { return "" }
+        return student.familyCode ?? ""
+    }
+
+    func regenerateFamilyCode(for studentID: UUID) {
+        guard let index = students.firstIndex(where: { $0.id == studentID }) else { return }
+        students[index].familyCode = makeUniqueFamilyCode()
+        childLinkRequests.removeAll { $0.studentID == studentID && $0.status == .pending }
+        saveLocalData()
+    }
+
+    private func ensureStudentFamilyCodes() {
+        var changed = false
+        for index in students.indices where students[index].familyCode == nil || students[index].familyCode?.isEmpty == true {
+            students[index].familyCode = makeUniqueFamilyCode()
+            changed = true
+        }
+        if changed { saveLocalData() }
+    }
+
+    private func makeUniqueFamilyCode() -> String {
+        var value: String
+        repeat { value = "ALU-\(Int.random(in: 100000...999999))" }
+        while students.contains(where: { $0.familyCode == value })
+        return value
     }
 
     func approveChildLink(_ id: UUID) {
@@ -169,7 +204,11 @@ final class AppStore: ObservableObject {
     }
 
     func addStudent(_ student: Student) {
-        students.append(student)
+        var newStudent = student
+        if newStudent.familyCode == nil || newStudent.familyCode?.isEmpty == true {
+            newStudent.familyCode = makeUniqueFamilyCode()
+        }
+        students.append(newStudent)
         saveLocalData()
     }
 
@@ -269,6 +308,7 @@ final class AppStore: ObservableObject {
         schoolMembers = Self.demoMembers
         childLinkRequests = []
         linkedChildIDsByParent = [:]
+        ensureStudentFamilyCodes()
         trialStart = Date()
         saveLocalData()
     }

@@ -26,7 +26,16 @@ struct DanceCourse: Identifiable, Codable { var id = UUID(); var title: String; 
 
 enum PaymentStatus: String, Codable { case paid = "Pagata", due = "Da pagare", late = "Scaduta"; var color: Color { switch self { case .paid: return .green; case .due: return .orange; case .late: return .red } } }
 enum MedicalStatus: String, Codable { case valid = "Valido", expiring = "In scadenza", expired = "Scaduto"; var color: Color { switch self { case .valid: return .green; case .expiring: return .orange; case .expired: return .red } } }
-struct Student: Identifiable, Codable { var id = UUID(); var name: String; var course: String; var age: Int; var paymentStatus: PaymentStatus; var medicalStatus: MedicalStatus; var attendanceRate: Int }
+struct Student: Identifiable, Codable {
+    var id = UUID()
+    var name: String
+    var course: String
+    var age: Int
+    var paymentStatus: PaymentStatus
+    var medicalStatus: MedicalStatus
+    var attendanceRate: Int
+    var familyCode: String?
+}
 struct Announcement: Identifiable, Codable { var id = UUID(); var title: String; var body: String; var audience: String; var date = Date() }
 
 struct InviteCode: Identifiable, Codable, Equatable {

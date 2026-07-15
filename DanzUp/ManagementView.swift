@@ -316,6 +316,7 @@ struct InviteCenterView: View {
     @State private var showNewInvite = false
     @State private var copiedCode: String?
     @State private var inviteToDelete: InviteCode?
+    @State private var copiedStudentCode: String?
 
     var body: some View {
         List {
@@ -327,6 +328,47 @@ struct InviteCenterView: View {
                         Text("Solo la scuola può generare, disattivare o eliminare i codici.").font(.caption).foregroundColor(.secondary)
                     }
                 }
+            }
+
+            Section("Codici personali allievi") {
+                if store.students.isEmpty {
+                    Text("Crea prima un allievo per generare il suo codice personale.")
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(store.students) { student in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(student.name).font(.headline)
+                                    Text(student.course).font(.caption).foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text(store.familyCode(for: student.id))
+                                    .font(.system(.subheadline, design: .monospaced).bold())
+                                    .foregroundColor(.dzPurple)
+                            }
+                            HStack {
+                                Button {
+                                    UIPasteboard.general.string = store.familyCode(for: student.id)
+                                    copiedStudentCode = store.familyCode(for: student.id)
+                                } label: { Label("Copia", systemImage: "doc.on.doc") }
+                                Spacer()
+                                ShareLink(item: "Codice personale DanzUp di \(student.name): \(store.familyCode(for: student.id))") {
+                                    Label("Condividi", systemImage: "square.and.arrow.up")
+                                }
+                                Spacer()
+                                Button { store.regenerateFamilyCode(for: student.id) } label: {
+                                    Label("Rigenera", systemImage: "arrow.clockwise")
+                                }
+                                .tint(.orange)
+                            }
+                            .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            } footer: {
+                Text("Ogni codice identifica un solo allievo. Il genitore non può vedere né selezionare altri profili. Rigenerando il codice, le richieste ancora in attesa per quello precedente vengono annullate.")
             }
 
             Section("Richieste collegamento figli") {
@@ -424,6 +466,9 @@ struct InviteCenterView: View {
         .alert("Codice copiato", isPresented: Binding(get: { copiedCode != nil }, set: { if !$0 { copiedCode = nil } })) {
             Button("OK") { copiedCode = nil }
         } message: { Text(copiedCode ?? "") }
+        .alert("Codice allievo copiato", isPresented: Binding(get: { copiedStudentCode != nil }, set: { if !$0 { copiedStudentCode = nil } })) {
+            Button("OK") { copiedStudentCode = nil }
+        } message: { Text(copiedStudentCode ?? "") }
         .confirmationDialog("Eliminare questo codice?", isPresented: Binding(get: { inviteToDelete != nil }, set: { if !$0 { inviteToDelete = nil } }), titleVisibility: .visible) {
             Button("Elimina", role: .destructive) { if let inviteToDelete { store.deleteInvite(inviteToDelete.id) }; inviteToDelete = nil }
             Button("Annulla", role: .cancel) { inviteToDelete = nil }
