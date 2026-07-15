@@ -65,6 +65,7 @@ private struct StatusPill: View {
 
 struct StudentDetailView: View {
     @EnvironmentObject var store: AppStore
+    @State private var showParentManager = false
     let studentID: UUID
 
     private var student: Student? { store.students.first { $0.id == studentID } }
@@ -87,6 +88,30 @@ struct StudentDetailView: View {
                         LabeledContent("Certificato", value: student.medicalStatus.rawValue)
                         LabeledContent("Presenze", value: "\(student.attendanceRate)%")
                     }
+                    Section("Genitori e tutori") {
+                        let guardians = store.parentInvitations(for: student.id)
+                        if guardians.isEmpty {
+                            Text("Nessun genitore collegato").foregroundStyle(.secondary)
+                        } else {
+                            ForEach(guardians) { guardian in
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(guardian.name).font(.headline)
+                                    Text("\(guardian.relationship) • \(guardian.email)").font(.caption).foregroundStyle(.secondary)
+                                    HStack {
+                                        Text(guardian.isActive ? "Invito da attivare" : "Account attivato")
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(guardian.isActive ? .orange : .green)
+                                        Spacer()
+                                        Text(guardian.code).font(.caption.monospaced()).foregroundStyle(Color.dzPurple)
+                                    }
+                                }
+                                .swipeActions {
+                                    Button(role: .destructive) { store.unlinkParentInvitation(guardian.id, from: student.id) } label: { Label("Scollega", systemImage: "link.badge.minus") }
+                                }
+                            }
+                        }
+                        Button { showParentManager = true } label: { Label("Aggiungi o collega genitore", systemImage: "person.2.badge.plus") }
+                    }
                     Section("Azioni rapide") {
                         NavigationLink { PaymentsManagementView(initialFilter: student.paymentStatus == .late ? "Scadute" : "Tutte") } label: { Label("Registra pagamento", systemImage: "eurosign.circle") }
                         NavigationLink { OwnerAttendanceView(initialCourseID: store.courseID(named: student.course)) } label: { Label("Segna presenza", systemImage: "checkmark.circle") }
@@ -95,6 +120,7 @@ struct StudentDetailView: View {
                     }
                 }
                 .navigationTitle("Scheda allievo")
+                .sheet(isPresented: $showParentManager) { ParentGuardianManagerView(studentID: student.id) }
             } else {
                 VStack(spacing: 10) { Image(systemName: "person.crop.circle.badge.exclamationmark").font(.largeTitle); Text("Allievo non disponibile").font(.headline) }.foregroundStyle(.secondary)
             }
@@ -160,6 +186,89 @@ struct AddStudentView: View {
                     .disabled(store.courses.isEmpty || selectedCourseID == nil)
                 }
             }
+        }
+    }
+}
+
+
+struct ParentGuardianManagerView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    let studentID: UUID
+    @State private var mode = 0
+    @State private var name = ""
+    @State private var email = ""
+    @State private var phone = ""
+    @State private var relationship = "Genitore"
+    @State private var createdInvitation: ParentInvitation?
+
+    private var availableExisting: [ParentInvitation] {
+        store.parentInvitations.filter { !$0.studentIDs.contains(studentID) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Picker("Operazione", selection: $mode) {
+                    Text("Nuovo genitore").tag(0)
+                    Text("Genitore esistente").tag(1)
+                }
+                .pickerStyle(.segmented)
+
+                if mode == 0 {
+                    Section("Dati genitore o tutore") {
+                        TextField("Nome e cognome", text: $name)
+                        TextField("Email", text: $email).textInputAutocapitalization(.never).keyboardType(.emailAddress)
+                        TextField("Telefono", text: $phone).keyboardType(.phonePad)
+                        Picker("Rapporto", selection: $relationship) {
+                            ForEach(["Madre", "Padre", "Genitore", "Tutore", "Altro"], id: \.self) { Text($0) }
+                        }
+                    }
+                    Section {
+                        Button("Crea, collega e genera invito") {
+                            createdInvitation = store.createParentInvitation(name: name, email: email, phone: phone, relationship: relationship, studentID: studentID)
+                        }
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || email.trimmingCharacters(in: .whitespaces).isEmpty)
+                    } footer: {
+                        Text("Il genitore userà il codice personale per attivare il proprio account e vedrà soltanto gli allievi associati dalla scuola.")
+                    }
+                } else {
+                    Section("Genitori già presenti") {
+                        if availableExisting.isEmpty {
+                            Text("Non ci sono altri genitori da collegare").foregroundStyle(.secondary)
+                        } else {
+                            ForEach(availableExisting) { guardian in
+                                Button {
+                                    store.linkExistingParentInvitation(guardian.id, to: studentID)
+                                    dismiss()
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text(guardian.name).foregroundStyle(.primary)
+                                            Text(guardian.email).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "link.badge.plus")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if let invitation = createdInvitation {
+                    Section("Invito creato") {
+                        LabeledContent("Codice", value: invitation.code)
+                        LabeledContent("Email", value: invitation.email)
+                        ShareLink(item: "Sei stato invitato su DanzUp. Scarica l’app e accedi come Genitore usando il codice \(invitation.code) con l’email \(invitation.email).") {
+                            Label("Condividi invito", systemImage: "square.and.arrow.up")
+                        }
+                        Button("Fine") { dismiss() }
+                    }
+                }
+            }
+            .navigationTitle("Genitore o tutore")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Chiudi") { dismiss() } } }
         }
     }
 }

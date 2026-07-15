@@ -55,6 +55,19 @@ struct InviteCode: Identifiable, Codable, Equatable {
     }
 }
 
+
+struct ParentInvitation: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var name: String
+    var email: String
+    var phone: String
+    var relationship: String
+    var studentIDs: [UUID]
+    var code: String
+    var isActive: Bool = true
+    var createdAt: Date = Date()
+}
+
 struct SchoolMember: Identifiable, Codable, Equatable {
     var id = UUID()
     var name: String

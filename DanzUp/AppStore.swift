@@ -15,6 +15,7 @@ final class AppStore: ObservableObject {
     @Published var attendanceByCourse: [String: Set<UUID>] = [:]
     @Published var inviteCodes: [InviteCode] = AppStore.demoInviteCodes
     @Published var schoolMembers: [SchoolMember] = AppStore.demoMembers
+    @Published var parentInvitations: [ParentInvitation] = []
     @Published var currentMember: SchoolMember?
     @Published var childLinkRequests: [ChildLinkRequest] = []
     @Published var linkedChildIDsByParent: [String: [UUID]] = [:]
@@ -47,6 +48,21 @@ final class AppStore: ObservableObject {
         let email = rawEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !code.isEmpty, !email.isEmpty, !name.isEmpty else { return .emptyFields }
+        if selectedRole == .parent, let invitationIndex = parentInvitations.firstIndex(where: { $0.code.uppercased() == code }) {
+            guard parentInvitations[invitationIndex].isActive else { return .inactiveCode }
+            let invitation = parentInvitations[invitationIndex]
+            guard invitation.email.lowercased() == email else { return .invalidCode }
+            guard !schoolMembers.contains(where: { $0.email.lowercased() == email }) else { return .emailAlreadyRegistered }
+            let member = SchoolMember(name: name, email: email, role: .parent, inviteCode: invitation.code)
+            schoolMembers.insert(member, at: 0)
+            linkedChildIDsByParent[email] = invitation.studentIDs
+            parentInvitations[invitationIndex].isActive = false
+            currentMember = member
+            userRole = .parent
+            isAuthenticated = true
+            saveLocalData()
+            return .success(member)
+        }
         guard let index = inviteCodes.firstIndex(where: { $0.code.uppercased() == code }) else { return .invalidCode }
         guard inviteCodes[index].isActive else { return .inactiveCode }
         guard inviteCodes[index].remainingUses > 0 else { return .exhaustedCode }
@@ -141,6 +157,56 @@ final class AppStore: ObservableObject {
     }
 
     func deleteChildLinkRequest(_ id: UUID) { childLinkRequests.removeAll { $0.id == id }; saveLocalData() }
+
+    func parentInvitations(for studentID: UUID) -> [ParentInvitation] {
+        parentInvitations.filter { $0.studentIDs.contains(studentID) }
+    }
+
+    func createParentInvitation(name: String, email: String, phone: String, relationship: String, studentID: UUID) -> ParentInvitation? {
+        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !cleanName.isEmpty, !cleanEmail.isEmpty else { return nil }
+        if let existingIndex = parentInvitations.firstIndex(where: { $0.email.lowercased() == cleanEmail }) {
+            if !parentInvitations[existingIndex].studentIDs.contains(studentID) {
+                parentInvitations[existingIndex].studentIDs.append(studentID)
+            }
+            parentInvitations[existingIndex].isActive = true
+            saveLocalData()
+            return parentInvitations[existingIndex]
+        }
+        var code: String
+        repeat { code = "GEN-\(Int.random(in: 100000...999999))" }
+        while parentInvitations.contains(where: { $0.code == code })
+        let invitation = ParentInvitation(name: cleanName, email: cleanEmail, phone: phone, relationship: relationship, studentIDs: [studentID], code: code)
+        parentInvitations.insert(invitation, at: 0)
+        saveLocalData()
+        return invitation
+    }
+
+    func linkExistingParentInvitation(_ invitationID: UUID, to studentID: UUID) {
+        guard let index = parentInvitations.firstIndex(where: { $0.id == invitationID }) else { return }
+        if !parentInvitations[index].studentIDs.contains(studentID) { parentInvitations[index].studentIDs.append(studentID) }
+        let email = parentInvitations[index].email.lowercased()
+        if schoolMembers.contains(where: { $0.email.lowercased() == email && $0.role == .parent }) {
+            if !linkedChildIDsByParent[email, default: []].contains(studentID) { linkedChildIDsByParent[email, default: []].append(studentID) }
+        }
+        saveLocalData()
+    }
+
+    func unlinkParentInvitation(_ invitationID: UUID, from studentID: UUID) {
+        guard let index = parentInvitations.firstIndex(where: { $0.id == invitationID }) else { return }
+        parentInvitations[index].studentIDs.removeAll { $0 == studentID }
+        let email = parentInvitations[index].email.lowercased()
+        linkedChildIDsByParent[email]?.removeAll { $0 == studentID }
+        saveLocalData()
+    }
+
+    func regenerateParentInvitation(_ invitationID: UUID) {
+        guard let index = parentInvitations.firstIndex(where: { $0.id == invitationID }) else { return }
+        parentInvitations[index].code = "GEN-\(Int.random(in: 100000...999999))"
+        parentInvitations[index].isActive = true
+        saveLocalData()
+    }
 
     func toggleMember(_ id: UUID) {
         guard let index = schoolMembers.firstIndex(where: { $0.id == id }) else { return }
@@ -306,6 +372,7 @@ final class AppStore: ObservableObject {
         attendanceByCourse = [:]
         inviteCodes = Self.demoInviteCodes
         schoolMembers = Self.demoMembers
+        parentInvitations = []
         childLinkRequests = []
         linkedChildIDsByParent = [:]
         ensureStudentFamilyCodes()
@@ -327,6 +394,7 @@ final class AppStore: ObservableObject {
             attendanceByCourse: attendanceByCourse.mapValues(Array.init),
             inviteCodes: inviteCodes,
             schoolMembers: schoolMembers,
+            parentInvitations: parentInvitations,
             childLinkRequests: childLinkRequests,
             linkedChildIDsByParent: linkedChildIDsByParent
         )
@@ -356,6 +424,7 @@ final class AppStore: ObservableObject {
             attendanceByCourse = snapshot.attendanceByCourse.mapValues(Set.init)
             inviteCodes = snapshot.inviteCodes ?? Self.demoInviteCodes
             schoolMembers = snapshot.schoolMembers ?? Self.demoMembers
+            parentInvitations = snapshot.parentInvitations ?? []
             childLinkRequests = snapshot.childLinkRequests ?? []
             linkedChildIDsByParent = snapshot.linkedChildIDsByParent ?? [:]
         } catch {
@@ -375,6 +444,7 @@ final class AppStore: ObservableObject {
         var attendanceByCourse: [String: [UUID]]
         var inviteCodes: [InviteCode]?
         var schoolMembers: [SchoolMember]?
+        var parentInvitations: [ParentInvitation]?
         var childLinkRequests: [ChildLinkRequest]?
         var linkedChildIDsByParent: [String: [UUID]]?
     }
