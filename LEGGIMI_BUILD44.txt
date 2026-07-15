@@ -1,0 +1,7 @@
+DanzUp Build 44
+
+Correzioni:
+- accesso demo genitore collegato realmente ad Alice Romano tramite studentID
+- Home, Corsi e Profilo leggono la stessa relazione genitore-figlio
+- rimossi i testi fissi che mostravano Alice anche senza collegamento
+- conteggio corsi della Home ricavato dalle iscrizioni reali

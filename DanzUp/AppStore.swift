@@ -42,8 +42,36 @@ final class AppStore: ObservableObject {
 
     func enterDemo(role: UserRole) {
         userRole = role
-        currentMember = nil
+
+        if role == .parent {
+            // L’accesso demo famiglia deve usare un vero account genitore collegato
+            // allo stesso studentID mostrato in Home, Corsi e Profilo.
+            let demoEmail = "demo.genitore@danzup.local"
+            let demoMember = SchoolMember(
+                name: "Mario Romano",
+                email: demoEmail,
+                role: .parent,
+                inviteCode: "DEMO-FAMIGLIA"
+            )
+            currentMember = demoMember
+
+            if let aliceID = students.first(where: { $0.name == "Alice Romano" })?.id {
+                linkedChildIDsByParent[demoEmail] = [aliceID]
+            }
+        } else if role == .student {
+            let demoMember = SchoolMember(
+                name: "Alice Romano",
+                email: "demo.allievo@danzup.local",
+                role: .student,
+                inviteCode: "DEMO-ALLIEVO"
+            )
+            currentMember = demoMember
+        } else {
+            currentMember = nil
+        }
+
         isAuthenticated = true
+        saveLocalData()
     }
 
     @discardableResult

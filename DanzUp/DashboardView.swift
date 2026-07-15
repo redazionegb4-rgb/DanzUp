@@ -82,7 +82,28 @@ private struct FamilyDashboard: View {
         ZStack { ScreenBackground(); ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HeroCard(title: store.userRole == .parent ? "La tua famiglia" : "Ciao, Alice", subtitle: store.schoolName, badge: store.userRole == .parent ? "Profilo genitore" : "Profilo allievo", icon: store.userRole.icon)
-                if store.userRole == .parent { DZCard { HStack { Image(systemName: "person.2.fill").foregroundColor(.dzPurple); VStack(alignment: .leading) { Text("Alice Romano").font(.headline); Text("Danza Classica • Profilo selezionato").font(.caption).foregroundColor(.secondary) }; Spacer(); Image(systemName: "chevron.down").foregroundColor(.secondary) } } }
+                if store.userRole == .parent {
+                    let linkedChildren = store.linkedChildrenForCurrentParent()
+                    DZCard {
+                        HStack {
+                            Image(systemName: "person.2.fill").foregroundColor(.dzPurple)
+                            VStack(alignment: .leading) {
+                                if let child = linkedChildren.first {
+                                    Text(child.name).font(.headline)
+                                    let courseCount = store.coursesForStudent(child.id).count
+                                    Text(courseCount == 1 ? "1 corso • Profilo selezionato" : "\(courseCount) corsi • Profilo selezionato")
+                                        .font(.caption).foregroundColor(.secondary)
+                                } else {
+                                    Text("Nessun figlio collegato").font(.headline)
+                                    Text("Collega un figlio dal Profilo")
+                                        .font(.caption).foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.down").foregroundColor(.secondary)
+                        }
+                    }
+                }
                 SectionTitle("Prossima lezione")
                 NavigationLink { FamilyCalendarView() } label: { DZCard { HStack(spacing: 14) { VStack { Text("MAR").font(.caption.bold()).foregroundColor(.dzPurple); Text("14").font(.largeTitle.bold()).foregroundColor(.primary) }.frame(width: 58); VStack(alignment: .leading, spacing: 5) { Text("Danza Classica").font(.title3.bold()).foregroundColor(.primary); Text("17:00 – Sala Étoile").foregroundColor(.secondary); Text("Giulia Ferri").font(.caption.bold()).foregroundColor(.dzPurple) }; Spacer(); Image(systemName: "chevron.right").foregroundColor(.secondary) } } }.buttonStyle(.plain)
                 HStack(spacing: 10) {
