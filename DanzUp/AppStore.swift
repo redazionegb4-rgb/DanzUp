@@ -22,6 +22,12 @@ final class AppStore: ObservableObject {
     @Published var childLinkRequests: [ChildLinkRequest] = []
     @Published var linkedChildIDsByParent: [String: [UUID]] = [:]
     @Published var lastSavedAt: Date?
+    @Published var lessons: [CourseLesson] = []
+    @Published var lessonAttendance: [LessonAttendance] = []
+    @Published var paymentRecords: [PaymentRecord] = []
+    @Published var documents: [SchoolDocument] = []
+    @Published var danceEvents: [DanceEvent] = []
+    @Published var staffPermissions: [UUID: StaffPermissions] = [:]
 
     private let persistenceKey = "DanzUp.LocalData.v15"
     private var isRestoring = false
@@ -31,6 +37,7 @@ final class AppStore: ObservableObject {
         ensureStudentFamilyCodes()
         ensureCourseEnrollments()
         ensureTeacherAssignments()
+        ensureOperationalData()
     }
 
     var trialDaysRemaining: Int {
@@ -314,6 +321,8 @@ final class AppStore: ObservableObject {
         courses.append(course)
         courseEnrollments[course.id] = []
         teacherAssignments[course.id] = []
+        let start = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        lessons.append(CourseLesson(courseID: course.id, start: start, room: course.room))
         saveLocalData()
     }
 
@@ -323,6 +332,10 @@ final class AppStore: ObservableObject {
         for id in ids {
             courseEnrollments.removeValue(forKey: id)
             teacherAssignments.removeValue(forKey: id)
+            let lessonIDs = Set(lessons.filter { $0.courseID == id }.map(\.id))
+            lessons.removeAll { $0.courseID == id }
+            lessonAttendance.removeAll { lessonIDs.contains($0.lessonID) }
+            paymentRecords.removeAll { $0.courseID == id }
         }
         saveLocalData()
     }
@@ -370,6 +383,12 @@ final class AppStore: ObservableObject {
         for courseID in Array(courseEnrollments.keys) {
             courseEnrollments[courseID]?.subtract(ids)
         }
+        lessonAttendance.removeAll { ids.contains($0.studentID) }
+        paymentRecords.removeAll { ids.contains($0.studentID) }
+        documents.removeAll { ids.contains($0.studentID) }
+        childLinkRequests.removeAll { ids.contains($0.studentID) }
+        for email in Array(linkedChildIDsByParent.keys) { linkedChildIDsByParent[email]?.removeAll { ids.contains($0) } }
+        for index in danceEvents.indices { danceEvents[index].participantIDs.removeAll { ids.contains($0) } }
         saveLocalData()
     }
 
@@ -400,6 +419,93 @@ final class AppStore: ObservableObject {
             let matching = schoolMembers.filter { $0.role == .teacher && course.teacher.localizedCaseInsensitiveContains($0.name) }
             teacherAssignments[course.id] = Set(matching.map(\.id))
         }
+        saveLocalData()
+    }
+
+
+    func lessonsForCourse(_ courseID: UUID) -> [CourseLesson] {
+        lessons.filter { $0.courseID == courseID }.sorted { $0.start < $1.start }
+    }
+
+    func lessonsForStudent(_ studentID: UUID) -> [CourseLesson] {
+        let courseIDs = Set(coursesForStudent(studentID).map(\.id))
+        return lessons.filter { courseIDs.contains($0.courseID) }.sorted { $0.start < $1.start }
+    }
+
+    func lessonsForCurrentStaff() -> [CourseLesson] {
+        guard userRole == .teacher, let memberID = currentMember?.id else { return lessons.sorted { $0.start < $1.start } }
+        let allowedCourseIDs = Set(teacherAssignments.filter { $0.value.contains(memberID) }.map(\.key))
+        return lessons.filter { allowedCourseIDs.contains($0.courseID) }.sorted { $0.start < $1.start }
+    }
+
+    func addLesson(_ lesson: CourseLesson) { lessons.append(lesson); saveLocalData() }
+    func updateLesson(_ lesson: CourseLesson) { if let i = lessons.firstIndex(where: { $0.id == lesson.id }) { lessons[i] = lesson; saveLocalData() } }
+    func deleteLesson(_ id: UUID) { lessons.removeAll { $0.id == id }; lessonAttendance.removeAll { $0.lessonID == id }; saveLocalData() }
+
+    func attendanceState(lessonID: UUID, studentID: UUID) -> AttendanceState? {
+        lessonAttendance.first { $0.lessonID == lessonID && $0.studentID == studentID }?.state
+    }
+
+    func setAttendance(_ state: AttendanceState, lessonID: UUID, studentID: UUID, note: String = "") {
+        if let i = lessonAttendance.firstIndex(where: { $0.lessonID == lessonID && $0.studentID == studentID }) {
+            lessonAttendance[i].state = state; lessonAttendance[i].note = note; lessonAttendance[i].updatedAt = Date()
+        } else {
+            lessonAttendance.append(LessonAttendance(lessonID: lessonID, studentID: studentID, state: state, note: note, recordedBy: currentMember?.name ?? ownerName))
+        }
+        saveLocalData()
+    }
+
+    func attendanceForStudent(_ studentID: UUID) -> [LessonAttendance] {
+        lessonAttendance.filter { $0.studentID == studentID }.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func addPaymentRecord(_ record: PaymentRecord) {
+        paymentRecords.insert(record, at: 0)
+        if let i = students.firstIndex(where: { $0.id == record.studentID }) { students[i].paymentStatus = record.status }
+        saveLocalData()
+    }
+    func updatePaymentRecord(_ record: PaymentRecord) {
+        if let i = paymentRecords.firstIndex(where: { $0.id == record.id }) { paymentRecords[i] = record }
+        if let i = students.firstIndex(where: { $0.id == record.studentID }) { students[i].paymentStatus = record.status }
+        saveLocalData()
+    }
+    func paymentsForStudent(_ studentID: UUID) -> [PaymentRecord] { paymentRecords.filter { $0.studentID == studentID }.sorted { $0.dueDate > $1.dueDate } }
+
+    func addDocument(_ document: SchoolDocument) { documents.insert(document, at: 0); saveLocalData() }
+    func updateDocument(_ document: SchoolDocument) { if let i = documents.firstIndex(where: { $0.id == document.id }) { documents[i] = document; saveLocalData() } }
+    func documentsForStudent(_ studentID: UUID) -> [SchoolDocument] { documents.filter { $0.studentID == studentID } }
+
+    func addDanceEvent(_ event: DanceEvent) { danceEvents.insert(event, at: 0); saveLocalData() }
+    func updateDanceEvent(_ event: DanceEvent) { if let i = danceEvents.firstIndex(where: { $0.id == event.id }) { danceEvents[i] = event; saveLocalData() } }
+
+    func permissions(for memberID: UUID) -> StaffPermissions { staffPermissions[memberID] ?? StaffPermissions() }
+    func setPermissions(_ permissions: StaffPermissions, for memberID: UUID) { staffPermissions[memberID] = permissions; saveLocalData() }
+
+    private func ensureOperationalData() {
+        if lessons.isEmpty {
+            let calendar = Calendar.current
+            for (index, course) in courses.enumerated() {
+                let base = calendar.date(byAdding: .day, value: index + 1, to: Date()) ?? Date()
+                let parts = course.time.split(separator: ":").compactMap { Int($0) }
+                var comps = calendar.dateComponents([.year, .month, .day], from: base)
+                comps.hour = parts.first ?? 17; comps.minute = parts.count > 1 ? parts[1] : 0
+                let start = calendar.date(from: comps) ?? base
+                lessons.append(CourseLesson(courseID: course.id, start: start, room: course.room, teacherID: teacherAssignments[course.id]?.first))
+                if let next = calendar.date(byAdding: .day, value: 7, to: start) { lessons.append(CourseLesson(courseID: course.id, start: next, room: course.room, teacherID: teacherAssignments[course.id]?.first)) }
+            }
+        }
+        if paymentRecords.isEmpty {
+            for student in students {
+                paymentRecords.append(PaymentRecord(studentID: student.id, courseID: coursesForStudent(student.id).first?.id, type: .monthly, title: "Quota mensile", amount: 50, paidAmount: student.paymentStatus == .paid ? 50 : 0, dueDate: Calendar.current.date(byAdding: .day, value: student.paymentStatus == .late ? -5 : 10, to: Date()) ?? Date(), status: student.paymentStatus, method: student.paymentStatus == .paid ? "Bonifico" : "Da definire"))
+            }
+        }
+        if documents.isEmpty {
+            for student in students { documents.append(SchoolDocument(studentID: student.id, title: "Certificato medico", kind: "Certificato", issueDate: Date(), expiryDate: Calendar.current.date(byAdding: .month, value: student.medicalStatus == .expired ? -1 : 6, to: Date()), reviewStatus: student.medicalStatus == .valid ? .approved : .pending, hasAttachment: student.medicalStatus == .valid)) }
+        }
+        if danceEvents.isEmpty, let course = courses.first {
+            danceEvents = [DanceEvent(title: "Saggio d’estate", date: Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date(), location: "Teatro Aurora", courseIDs: [course.id], participantIDs: Array(courseEnrollments[course.id] ?? []), rehearsalDates: [], fee: 25, costumeNote: "Costume nero", performanceOrder: "Da definire")]
+        }
+        for member in schoolMembers where member.role == .secretary { if staffPermissions[member.id] == nil { staffPermissions[member.id] = StaffPermissions() } }
         saveLocalData()
     }
 
@@ -455,6 +561,12 @@ final class AppStore: ObservableObject {
         attendanceByCourse = [:]
         courseEnrollments = [:]
         teacherAssignments = [:]
+        lessons = []
+        lessonAttendance = []
+        paymentRecords = []
+        documents = []
+        danceEvents = []
+        staffPermissions = [:]
         inviteCodes = Self.demoInviteCodes
         schoolMembers = Self.demoMembers
         parentInvitations = []
@@ -463,6 +575,7 @@ final class AppStore: ObservableObject {
         ensureStudentFamilyCodes()
         ensureCourseEnrollments()
         ensureTeacherAssignments()
+        ensureOperationalData()
         trialStart = Date()
         saveLocalData()
     }
@@ -485,7 +598,13 @@ final class AppStore: ObservableObject {
             schoolMembers: schoolMembers,
             parentInvitations: parentInvitations,
             childLinkRequests: childLinkRequests,
-            linkedChildIDsByParent: linkedChildIDsByParent
+            linkedChildIDsByParent: linkedChildIDsByParent,
+            lessons: lessons,
+            lessonAttendance: lessonAttendance,
+            paymentRecords: paymentRecords,
+            documents: documents,
+            danceEvents: danceEvents,
+            staffPermissions: staffPermissions
         )
         do {
             let data = try JSONEncoder().encode(snapshot)
@@ -518,6 +637,12 @@ final class AppStore: ObservableObject {
             parentInvitations = snapshot.parentInvitations ?? []
             childLinkRequests = snapshot.childLinkRequests ?? []
             linkedChildIDsByParent = snapshot.linkedChildIDsByParent ?? [:]
+            lessons = snapshot.lessons ?? []
+            lessonAttendance = snapshot.lessonAttendance ?? []
+            paymentRecords = snapshot.paymentRecords ?? []
+            documents = snapshot.documents ?? []
+            danceEvents = snapshot.danceEvents ?? []
+            staffPermissions = snapshot.staffPermissions ?? [:]
         } catch {
             UserDefaults.standard.removeObject(forKey: persistenceKey)
         }
@@ -540,6 +665,12 @@ final class AppStore: ObservableObject {
         var parentInvitations: [ParentInvitation]?
         var childLinkRequests: [ChildLinkRequest]?
         var linkedChildIDsByParent: [String: [UUID]]?
+        var lessons: [CourseLesson]?
+        var lessonAttendance: [LessonAttendance]?
+        var paymentRecords: [PaymentRecord]?
+        var documents: [SchoolDocument]?
+        var danceEvents: [DanceEvent]?
+        var staffPermissions: [UUID: StaffPermissions]?
     }
 
     static let demoMembers: [SchoolMember] = [

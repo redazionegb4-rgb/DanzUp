@@ -1,0 +1,16 @@
+DanzUp Build 45 — aggiornamento operativo completo
+
+Novità principali:
+- lezioni reali con data/ora, durata, sala, insegnante, stato e note;
+- registro presenze distinto per ogni singola lezione;
+- calendario famiglia e insegnanti basato sulle lezioni reali;
+- quote collegate ad allievo/corso con scadenze, importi parziali, metodo e stato;
+- documenti e certificati collegati agli allievi con scadenza, verifica e allegato;
+- comunicazioni indirizzabili a scuola, ruoli o corso specifico;
+- saggi/eventi collegati a corsi e partecipanti;
+- permessi personalizzati per la segreteria;
+- pulizia automatica dei collegamenti quando si elimina corso o allievo;
+- dati salvati localmente sul dispositivo.
+
+Compatibilità: Xcode 15, iOS 16+
+Versione 1.0 — Build 45

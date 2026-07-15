@@ -3,12 +3,14 @@ import UIKit
 
 struct ManagementView: View {
     private let items: [ManagementItem] = [
+        ManagementItem(kind: .lessons, title: "Lezioni", subtitle: "Calendario, sale e modifiche", icon: "calendar.badge.clock", tint: .cyan, badge: "Programmazione"),
         ManagementItem(kind: .attendance, title: "Presenze", subtitle: "Registro, assenze e recuperi", icon: "checkmark.circle.fill", tint: .green, badge: "Oggi 46"),
         ManagementItem(kind: .payments, title: "Quote", subtitle: "Pagamenti, ricevute e scadenze", icon: "eurosign.circle.fill", tint: .orange, badge: "7 scadute"),
         ManagementItem(kind: .medical, title: "Certificati", subtitle: "Documenti e scadenze mediche", icon: "cross.case.fill", tint: .blue, badge: "4 avvisi"),
         ManagementItem(kind: .announcements, title: "Comunicazioni", subtitle: "Avvisi mirati e notifiche", icon: "megaphone.fill", tint: .dzFuchsia, badge: "2 nuove"),
         ManagementItem(kind: .events, title: "Saggi ed eventi", subtitle: "Prove, costumi e partecipanti", icon: "star.fill", tint: .dzPurple, badge: "1 attivo"),
-        ManagementItem(kind: .staff, title: "Staff e inviti", subtitle: "Ruoli e codici di accesso", icon: "person.2.badge.gearshape.fill", tint: .indigo, badge: "8 membri")
+        ManagementItem(kind: .staff, title: "Staff e inviti", subtitle: "Ruoli e codici di accesso", icon: "person.2.badge.gearshape.fill", tint: .indigo, badge: "8 membri"),
+        ManagementItem(kind: .permissions, title: "Permessi", subtitle: "Autorizzazioni della segreteria", icon: "lock.shield.fill", tint: .purple, badge: "Personalizzati")
     ]
 
     var body: some View {
@@ -33,17 +35,19 @@ struct ManagementView: View {
     @ViewBuilder
     private func destination(for kind: ManagementKind) -> some View {
         switch kind {
+        case .lessons: LessonsManagementView()
         case .attendance: OwnerAttendanceView()
-        case .payments: PaymentsManagementView()
-        case .medical: MedicalCertificatesView()
+        case .payments: PaymentsLedgerView()
+        case .medical: DocumentsOperationalView()
         case .announcements: CommunicationsManagementView()
-        case .events: EventsManagementView()
+        case .events: EventsOperationalView()
         case .staff: InviteCenterView()
+        case .permissions: StaffPermissionsView()
         }
     }
 }
 
-enum ManagementKind { case attendance, payments, medical, announcements, events, staff }
+enum ManagementKind { case lessons, attendance, payments, medical, announcements, events, staff, permissions }
 struct ManagementItem: Identifiable { let id = UUID(); let kind: ManagementKind; let title: String; let subtitle: String; let icon: String; let tint: Color; let badge: String }
 
 private struct ManagementTile: View {
@@ -276,7 +280,11 @@ private struct CommunicationComposerView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Destinatari") { Picker("Invia a", selection: $audience) { ForEach(["Tutta la scuola", "Solo insegnanti", "Solo genitori", "Corso specifico"], id: \.self) { Text($0) } } }
+                Section("Destinatari") {
+                    Picker("Invia a", selection: $audience) {
+                        ForEach(["Tutta la scuola", "Solo insegnanti", "Solo genitori"] + store.courses.map { "Corso: \($0.title)" }, id: \.self) { Text($0) }
+                    }
+                }
                 Section("Messaggio") { TextField("Titolo", text: $title); TextEditor(text: $message).frame(minHeight: 140) }
                 Section { Toggle("Invia notifica push", isOn: .constant(true)) }
             }

@@ -56,14 +56,17 @@ private struct FamilyTabView: View {
 
 struct StaffCoursesView: View {
     @EnvironmentObject var store: AppStore
+    private var visibleLessons: [CourseLesson] { store.lessonsForCurrentStaff() }
     var body: some View {
-        List(store.courses) { course in
-            NavigationLink { CourseDetailView(courseID: course.id) } label: {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(course.title).font(.headline)
-                    Text("\(course.day) • \(course.time) • \(course.room)").font(.caption).foregroundColor(.secondary)
-                    Text("\(course.enrolled) allievi").font(.caption.bold()).foregroundColor(.dzPurple)
-                }.padding(.vertical, 5)
+        List {
+            ForEach(visibleLessons) { lesson in
+                NavigationLink { LessonAttendanceView(lesson: lesson) } label: {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(store.courses.first(where: { $0.id == lesson.courseID })?.title ?? "Corso").font(.headline)
+                        Text(lesson.start.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundColor(.secondary)
+                        Text("\(store.studentsForCourse(lesson.courseID).count) allievi • \(lesson.room)").font(.caption.bold()).foregroundColor(.dzPurple)
+                    }.padding(.vertical, 5)
+                }
             }
         }.navigationTitle("Le mie lezioni")
     }
@@ -71,46 +74,20 @@ struct StaffCoursesView: View {
 
 struct AttendanceRegisterView: View {
     @EnvironmentObject var store: AppStore
-    @State private var selectedCourse = "Hip Hop Teen"
-    @State private var showSaved = false
-
-    private var visibleStudents: [Student] {
-        let matches = store.students.filter { $0.course == selectedCourse }
-        return matches.isEmpty ? store.students : matches
-    }
-
     var body: some View {
         List {
-            Section("Lezione selezionata") {
-                Picker("Corso", selection: $selectedCourse) {
-                    ForEach(store.courses.map(\.title), id: \.self) { Text($0) }
-                }
-                Label("Registro salvato automaticamente", systemImage: "checkmark.icloud.fill")
-                    .font(.caption).foregroundColor(.secondary)
-            }
-            Section("Registro") {
-                ForEach(visibleStudents) { student in
-                    Button {
-                        store.toggleAttendance(studentID: student.id, courseTitle: selectedCourse)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(student.name).foregroundColor(.primary)
-                                Text(student.course).font(.caption).foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(store.isPresent(studentID: student.id, courseTitle: selectedCourse) ? .green : .secondary).font(.title3)
+            Section("Lezioni") {
+                ForEach(store.lessonsForCurrentStaff()) { lesson in
+                    NavigationLink { LessonAttendanceView(lesson: lesson) } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(store.courses.first(where: { $0.id == lesson.courseID })?.title ?? "Corso").font(.headline)
+                            Text(lesson.start.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundColor(.secondary)
+                            Text(lesson.state.rawValue).font(.caption.bold()).foregroundColor(.dzPurple)
                         }
                     }
                 }
             }
-            Section {
-                Button("Conferma registro") { store.saveLocalData(); showSaved = true }
-            }
-        }
-        .navigationTitle("Presenze")
-        .alert("Registro salvato", isPresented: $showSaved) { Button("OK", role: .cancel) {} }
+        }.navigationTitle("Presenze")
     }
 }
 
@@ -129,12 +106,19 @@ struct StaffMessagesView: View {
 }
 
 struct FamilyCalendarView: View {
+    @EnvironmentObject var store: AppStore
+    private var children: [Student] { store.userRole == .parent ? store.linkedChildrenForCurrentParent() : Array(store.students.prefix(1)) }
+    private var lessons: [CourseLesson] { children.flatMap { store.lessonsForStudent($0.id) }.sorted { $0.start < $1.start } }
     var body: some View {
         List {
-            Section("Questa settimana") {
-                FamilyLessonRow(day: "MAR", date: "14", title: "Danza Classica", time: "17:00 – 18:15", room: "Sala Étoile")
-                FamilyLessonRow(day: "GIO", date: "16", title: "Danza Classica", time: "17:00 – 18:15", room: "Sala Étoile")
-                FamilyLessonRow(day: "SAB", date: "18", title: "Prova saggio", time: "15:00 – 17:00", room: "Teatro")
+            Section("Calendario reale") {
+                if lessons.isEmpty { Text("Nessuna lezione programmata").foregroundColor(.secondary) }
+                ForEach(lessons) { lesson in
+                    FamilyLessonRow(day: lesson.start.formatted(.dateTime.weekday(.abbreviated)).uppercased(), date: lesson.start.formatted(.dateTime.day()), title: store.courses.first(where: { $0.id == lesson.courseID })?.title ?? "Corso", time: lesson.start.formatted(date: .omitted, time: .shortened), room: lesson.room)
+                }
+            }
+            Section("Eventi") {
+                ForEach(store.danceEvents) { event in Label("\(event.title) • \(event.date.formatted(date: .abbreviated, time: .shortened))", systemImage: "star.fill") }
             }
         }.navigationTitle("Calendario")
     }
@@ -277,29 +261,62 @@ private struct FamilyCourseDetailView: View {
 }
 
 struct FamilyDocumentsView: View {
+    @EnvironmentObject var store: AppStore
+    private var children: [Student] { store.userRole == .parent ? store.linkedChildrenForCurrentParent() : Array(store.students.prefix(1)) }
     var body: some View {
         List {
-            Section("Certificato medico") { Label("Valido fino al 12/02/2027", systemImage: "checkmark.shield.fill").foregroundColor(.green); Label("Carica nuovo certificato", systemImage: "square.and.arrow.up") }
-            Section("Pagamenti") { LabeledContent("Quota luglio", value: "Pagata"); LabeledContent("Saggio estivo", value: "Pagata"); Label("Storico ricevute", systemImage: "doc.text.magnifyingglass") }
-            Section("Moduli") { Label("Regolamento scuola", systemImage: "doc.text.fill"); Label("Autorizzazione immagini", systemImage: "signature") }
+            ForEach(children) { child in
+                Section(child.name) {
+                    ForEach(store.documentsForStudent(child.id)) { document in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack { Text(document.title).font(.headline); Spacer(); Text(document.reviewStatus.rawValue).font(.caption.bold()).foregroundColor(.dzPurple) }
+                            if let expiry = document.expiryDate { Text("Scadenza \(expiry.formatted(date: .numeric, time: .omitted))").font(.caption).foregroundColor(.secondary) }
+                            Label(document.hasAttachment ? "Allegato caricato" : "Allegato da caricare", systemImage: document.hasAttachment ? "doc.fill" : "square.and.arrow.up").font(.caption)
+                        }.padding(.vertical, 3)
+                    }
+                    ForEach(store.paymentsForStudent(child.id)) { payment in
+                        HStack { Label(payment.title, systemImage: "eurosign.circle.fill"); Spacer(); Text(payment.status.rawValue).font(.caption.bold()).foregroundColor(payment.status.color) }
+                    }
+                }
+            }
         }.navigationTitle("Documenti")
     }
 }
 
 struct FamilyAttendanceView: View {
+    @EnvironmentObject var store: AppStore
+    private var child: Student? { store.userRole == .parent ? store.linkedChildrenForCurrentParent().first : store.students.first }
     var body: some View {
         List {
-            Section("Riepilogo") { LabeledContent("Presenze", value: "24"); LabeledContent("Assenze", value: "1"); LabeledContent("Percentuale", value: "96%") }
-            Section("Ultime lezioni") { Label("10 luglio • Presente", systemImage: "checkmark.circle.fill").foregroundColor(.green); Label("3 luglio • Presente", systemImage: "checkmark.circle.fill").foregroundColor(.green); Label("26 giugno • Assente", systemImage: "xmark.circle.fill").foregroundColor(.red) }
+            if let child {
+                Section("Storico di \(child.name)") {
+                    let records = store.attendanceForStudent(child.id)
+                    if records.isEmpty { Text("Nessuna presenza registrata").foregroundColor(.secondary) }
+                    ForEach(records) { record in
+                        HStack { Text(store.lessons.first(where: { $0.id == record.lessonID })?.start.formatted(date: .abbreviated, time: .shortened) ?? "Lezione"); Spacer(); Text(record.state.rawValue).foregroundColor(record.state == .present ? .green : .orange) }
+                    }
+                }
+            }
         }.navigationTitle("Le mie presenze")
     }
 }
 
 struct FamilyPaymentsView: View {
+    @EnvironmentObject var store: AppStore
+    private var child: Student? { store.userRole == .parent ? store.linkedChildrenForCurrentParent().first : store.students.first }
     var body: some View {
         List {
-            Section("Situazione") { LabeledContent("Luglio", value: "Pagata"); LabeledContent("Importo", value: "€50,00"); LabeledContent("Metodo", value: "Bonifico") }
-            Section("Ricevute") { Label("Ricevuta luglio 2026", systemImage: "doc.text.fill"); Label("Ricevuta giugno 2026", systemImage: "doc.text.fill") }
+            if let child {
+                Section(child.name) {
+                    ForEach(store.paymentsForStudent(child.id)) { payment in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack { Text(payment.title).font(.headline); Spacer(); Text(payment.status.rawValue).font(.caption.bold()).foregroundColor(payment.status.color) }
+                            Text("€\(payment.paidAmount, specifier: "%.2f") / €\(payment.amount, specifier: "%.2f")").font(.caption).foregroundColor(.secondary)
+                            Text("Scadenza \(payment.dueDate.formatted(date: .numeric, time: .omitted)) • \(payment.method)").font(.caption).foregroundColor(.secondary)
+                        }.padding(.vertical, 3)
+                    }
+                }
+            }
         }.navigationTitle("Quote e ricevute")
     }
 }

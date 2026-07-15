@@ -113,3 +113,93 @@ enum InviteUseResult: Equatable {
     case incompatibleRole(expected: UserRole)
     case emailAlreadyRegistered
 }
+
+enum LessonState: String, Codable, CaseIterable, Identifiable {
+    case scheduled = "Programmata", cancelled = "Annullata", completed = "Completata", recovery = "Recupero"
+    var id: String { rawValue }
+}
+
+struct CourseLesson: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var courseID: UUID
+    var start: Date
+    var durationMinutes: Int = 75
+    var room: String
+    var teacherID: UUID?
+    var state: LessonState = .scheduled
+    var note: String = ""
+}
+
+enum AttendanceState: String, Codable, CaseIterable, Identifiable {
+    case present = "Presente", absent = "Assente", justified = "Giustificato", trial = "Prova"
+    var id: String { rawValue }
+}
+
+struct LessonAttendance: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var lessonID: UUID
+    var studentID: UUID
+    var state: AttendanceState
+    var note: String = ""
+    var recordedBy: String
+    var updatedAt: Date = Date()
+}
+
+enum FeeType: String, Codable, CaseIterable, Identifiable {
+    case monthly = "Mensile", quarterly = "Trimestrale", annual = "Annuale", registration = "Iscrizione", recital = "Saggio", costume = "Costume", privateLesson = "Lezione privata"
+    var id: String { rawValue }
+}
+
+struct PaymentRecord: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var studentID: UUID
+    var courseID: UUID?
+    var type: FeeType
+    var title: String
+    var amount: Double
+    var paidAmount: Double
+    var dueDate: Date
+    var status: PaymentStatus
+    var method: String = "Da definire"
+    var receiptNumber: String = ""
+    var note: String = ""
+}
+
+enum DocumentReviewStatus: String, Codable, CaseIterable, Identifiable {
+    case pending = "Da verificare", approved = "Approvato", rejected = "Rifiutato"
+    var id: String { rawValue }
+}
+
+struct SchoolDocument: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var studentID: UUID
+    var title: String
+    var kind: String
+    var issueDate: Date
+    var expiryDate: Date?
+    var reviewStatus: DocumentReviewStatus
+    var rejectionReason: String = ""
+    var hasAttachment: Bool = false
+}
+
+struct DanceEvent: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var title: String
+    var date: Date
+    var location: String
+    var courseIDs: [UUID]
+    var participantIDs: [UUID]
+    var rehearsalDates: [Date]
+    var fee: Double
+    var costumeNote: String
+    var performanceOrder: String
+}
+
+struct StaffPermissions: Codable, Equatable {
+    var manageStudents = true
+    var manageCourses = true
+    var manageAttendance = true
+    var managePayments = false
+    var manageDocuments = true
+    var sendAnnouncements = true
+}
