@@ -329,6 +329,32 @@ struct InviteCenterView: View {
                 }
             }
 
+            Section("Richieste collegamento figli") {
+                let pending = store.childLinkRequests.filter { $0.status == .pending }
+                if pending.isEmpty {
+                    Text("Nessuna richiesta in attesa.").foregroundColor(.secondary)
+                } else {
+                    ForEach(pending) { request in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "figure.2.and.child.holdinghands").foregroundColor(.dzPurple)
+                                VStack(alignment: .leading) {
+                                    Text(request.studentName).font(.headline)
+                                    Text("Richiesto da \(request.parentName)").font(.caption).foregroundColor(.secondary)
+                                    Text(request.parentEmail).font(.caption2).foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                            HStack {
+                                Button("Rifiuta", role: .destructive) { store.rejectChildLink(request.id) }
+                                Spacer()
+                                Button("Approva") { store.approveChildLink(request.id) }.buttonStyle(.borderedProminent).tint(.dzPurple)
+                            }
+                        }.padding(.vertical, 4)
+                    }
+                }
+            }
+
             Section("Codici di accesso") {
                 if store.inviteCodes.isEmpty {
                     VStack(spacing: 8) { Image(systemName: "qrcode").font(.largeTitle).foregroundColor(.secondary); Text("Nessun codice").font(.headline); Text("Genera il primo codice per invitare staff o famiglie.").font(.caption).foregroundColor(.secondary) }.frame(maxWidth: .infinity).padding(.vertical, 20)

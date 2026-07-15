@@ -16,6 +16,8 @@ final class AppStore: ObservableObject {
     @Published var inviteCodes: [InviteCode] = AppStore.demoInviteCodes
     @Published var schoolMembers: [SchoolMember] = AppStore.demoMembers
     @Published var currentMember: SchoolMember?
+    @Published var childLinkRequests: [ChildLinkRequest] = []
+    @Published var linkedChildIDsByParent: [String: [UUID]] = [:]
     @Published var lastSavedAt: Date?
 
     private let persistenceKey = "DanzUp.LocalData.v14"
@@ -63,6 +65,47 @@ final class AppStore: ObservableObject {
         saveLocalData()
         return .success(member)
     }
+
+    var currentFamilyName: String { currentMember?.name ?? (userRole == .parent ? "Mario Romano" : "Alice Romano") }
+    var currentFamilyEmail: String { currentMember?.email.lowercased() ?? "demo.genitore@danzup.local" }
+
+    func linkedChildrenForCurrentParent() -> [Student] {
+        let ids = Set(linkedChildIDsByParent[currentFamilyEmail] ?? [])
+        return students.filter { ids.contains($0.id) }
+    }
+
+    @discardableResult
+    func requestChildLink(code rawCode: String, studentID: UUID?) -> ChildLinkResult {
+        let code = rawCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard !code.isEmpty else { return .emptyCode }
+        guard let studentID, let student = students.first(where: { $0.id == studentID }) else { return .studentNotFound }
+        guard let invite = inviteCodes.first(where: { $0.code.uppercased() == code }) else { return .invalidCode }
+        guard invite.isActive else { return .inactiveCode }
+        guard invite.remainingUses > 0 else { return .exhaustedCode }
+        guard invite.role == .parent || invite.role == .student else { return .wrongCodeRole }
+        if linkedChildIDsByParent[currentFamilyEmail, default: []].contains(studentID) { return .alreadyLinked }
+        if childLinkRequests.contains(where: { $0.parentEmail == currentFamilyEmail && $0.studentID == studentID && $0.status == .pending }) { return .alreadyPending }
+        childLinkRequests.insert(ChildLinkRequest(parentName: currentFamilyName, parentEmail: currentFamilyEmail, studentID: studentID, studentName: student.name, authorizationCode: invite.code), at: 0)
+        saveLocalData()
+        return .success
+    }
+
+    func approveChildLink(_ id: UUID) {
+        guard let index = childLinkRequests.firstIndex(where: { $0.id == id }) else { return }
+        childLinkRequests[index].status = .approved
+        let email = childLinkRequests[index].parentEmail
+        let studentID = childLinkRequests[index].studentID
+        if !linkedChildIDsByParent[email, default: []].contains(studentID) { linkedChildIDsByParent[email, default: []].append(studentID) }
+        saveLocalData()
+    }
+
+    func rejectChildLink(_ id: UUID) {
+        guard let index = childLinkRequests.firstIndex(where: { $0.id == id }) else { return }
+        childLinkRequests[index].status = .rejected
+        saveLocalData()
+    }
+
+    func deleteChildLinkRequest(_ id: UUID) { childLinkRequests.removeAll { $0.id == id }; saveLocalData() }
 
     func toggleMember(_ id: UUID) {
         guard let index = schoolMembers.firstIndex(where: { $0.id == id }) else { return }
@@ -224,6 +267,8 @@ final class AppStore: ObservableObject {
         attendanceByCourse = [:]
         inviteCodes = Self.demoInviteCodes
         schoolMembers = Self.demoMembers
+        childLinkRequests = []
+        linkedChildIDsByParent = [:]
         trialStart = Date()
         saveLocalData()
     }
@@ -241,7 +286,9 @@ final class AppStore: ObservableObject {
             announcements: announcements,
             attendanceByCourse: attendanceByCourse.mapValues(Array.init),
             inviteCodes: inviteCodes,
-            schoolMembers: schoolMembers
+            schoolMembers: schoolMembers,
+            childLinkRequests: childLinkRequests,
+            linkedChildIDsByParent: linkedChildIDsByParent
         )
         do {
             let data = try JSONEncoder().encode(snapshot)
@@ -269,6 +316,8 @@ final class AppStore: ObservableObject {
             attendanceByCourse = snapshot.attendanceByCourse.mapValues(Set.init)
             inviteCodes = snapshot.inviteCodes ?? Self.demoInviteCodes
             schoolMembers = snapshot.schoolMembers ?? Self.demoMembers
+            childLinkRequests = snapshot.childLinkRequests ?? []
+            linkedChildIDsByParent = snapshot.linkedChildIDsByParent ?? [:]
         } catch {
             UserDefaults.standard.removeObject(forKey: persistenceKey)
         }
@@ -286,6 +335,8 @@ final class AppStore: ObservableObject {
         var attendanceByCourse: [String: [UUID]]
         var inviteCodes: [InviteCode]?
         var schoolMembers: [SchoolMember]?
+        var childLinkRequests: [ChildLinkRequest]?
+        var linkedChildIDsByParent: [String: [UUID]]?
     }
 
     static let demoMembers: [SchoolMember] = [

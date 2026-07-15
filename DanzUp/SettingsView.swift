@@ -63,7 +63,7 @@ private struct OwnerSettingsView: View {
                 Toggle(isOn: $notificationsEnabled) { Label("Notifiche", systemImage: "bell.fill") }
             }
 
-            CommonInformationSection(build: "25")
+            CommonInformationSection(build: "28")
             LogoutSection()
         }
         .navigationTitle("Scuola")
@@ -108,7 +108,7 @@ private struct StaffProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "25")
+            CommonInformationSection(build: "28")
             LogoutSection()
         }
         .navigationTitle("Profilo")
@@ -132,15 +132,18 @@ private struct FamilyProfileView: View {
 
             if store.userRole == .parent {
                 Section("Profili collegati") {
-                    HStack {
-                        Circle().fill(Color.dzPurple.opacity(0.14)).frame(width: 42, height: 42)
-                            .overlay(Text("AR").font(.caption.bold()).foregroundColor(.dzPurple))
-                        VStack(alignment: .leading) {
-                            Text("Alice Romano").font(.headline)
-                            Text("Danza Classica • 14 anni").font(.caption).foregroundColor(.secondary)
+                    let linked = store.linkedChildrenForCurrentParent()
+                    if linked.isEmpty {
+                        ContentUnavailableView("Nessun figlio collegato", systemImage: "person.2.slash", description: Text("Invia una richiesta e attendi l’approvazione della scuola."))
+                    } else {
+                        ForEach(linked) { child in
+                            HStack {
+                                Circle().fill(Color.dzPurple.opacity(0.14)).frame(width: 42, height: 42)
+                                    .overlay(Text(child.name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()).font(.caption.bold()).foregroundColor(.dzPurple))
+                                VStack(alignment: .leading) { Text(child.name).font(.headline); Text("\(child.course) • \(child.age) anni").font(.caption).foregroundColor(.secondary) }
+                                Spacer(); Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                            }
                         }
-                        Spacer()
-                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                     }
                     NavigationLink { LinkChildView() } label: { Label("Collega un altro figlio", systemImage: "person.badge.plus") }
                 }
@@ -162,7 +165,7 @@ private struct FamilyProfileView: View {
                     .foregroundColor(.secondary)
             }
 
-            CommonInformationSection(build: "25")
+            CommonInformationSection(build: "28")
             LogoutSection()
         }
         .navigationTitle("Profilo")
@@ -418,8 +421,48 @@ private struct EmergencyContactsView: View {
 }
 
 private struct LinkChildView: View {
-    @State private var code = ""; @State private var linked = false
-    var body: some View { Form { Section("Codice allievo") { TextField("Codice fornito dalla scuola", text: $code).textInputAutocapitalization(.characters); Text("Il collegamento dovrà essere confermato dalla scuola.").font(.caption).foregroundColor(.secondary) }; Section { Button("Collega profilo") { linked = true }.disabled(code.isEmpty) } }.navigationTitle("Collega un figlio").alert("Richiesta inviata", isPresented: $linked) { Button("OK") {} } }
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var code = ""
+    @State private var selectedStudentID: UUID?
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+    @State private var showAlert = false
+    @State private var success = false
+
+    var body: some View {
+        Form {
+            Section("Profilo allievo") {
+                Picker("Allievo", selection: $selectedStudentID) {
+                    Text("Seleziona un allievo").tag(UUID?.none)
+                    ForEach(store.students) { student in Text("\(student.name) • \(student.course)").tag(UUID?.some(student.id)) }
+                }
+            }
+            Section("Codice autorizzazione") {
+                TextField("Codice famiglia fornito dalla scuola", text: $code).textInputAutocapitalization(.characters).autocorrectionDisabled()
+                Text("La scuola riceverà la richiesta e dovrà approvarla. Dopo l’approvazione il profilo apparirà automaticamente qui.").font(.caption).foregroundColor(.secondary)
+            }
+            Section { Button("Invia richiesta alla scuola") { submit() }.disabled(code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedStudentID == nil) }
+        }
+        .navigationTitle("Collega un figlio")
+        .alert(alertTitle, isPresented: $showAlert) { Button("OK") { if success { dismiss() } } } message: { Text(alertMessage) }
+    }
+
+    private func submit() {
+        success = false
+        switch store.requestChildLink(code: code, studentID: selectedStudentID) {
+        case .success: alertTitle = "Richiesta inviata"; alertMessage = "La richiesta è ora visibile nel profilo della scuola, in Inviti e codici. Quando verrà approvata, il figlio comparirà tra i profili collegati."; success = true
+        case .emptyCode: alertTitle = "Codice mancante"; alertMessage = "Inserisci il codice fornito dalla scuola."
+        case .invalidCode: alertTitle = "Codice non valido"; alertMessage = "Il codice non esiste."
+        case .inactiveCode: alertTitle = "Codice disattivato"; alertMessage = "La scuola ha disattivato questo codice."
+        case .exhaustedCode: alertTitle = "Codice esaurito"; alertMessage = "Il codice non ha più utilizzi disponibili."
+        case .wrongCodeRole: alertTitle = "Codice non compatibile"; alertMessage = "Usa un codice Famiglia/Allievo."
+        case .studentNotFound: alertTitle = "Allievo mancante"; alertMessage = "Seleziona il profilo da collegare."
+        case .alreadyLinked: alertTitle = "Già collegato"; alertMessage = "Questo allievo è già collegato al tuo profilo."
+        case .alreadyPending: alertTitle = "Richiesta già inviata"; alertMessage = "La scuola deve ancora approvare la richiesta precedente."
+        }
+        showAlert = true
+    }
 }
 
 private struct InfoPageView: View {

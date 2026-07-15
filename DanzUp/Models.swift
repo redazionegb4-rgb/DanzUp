@@ -56,6 +56,32 @@ struct SchoolMember: Identifiable, Codable, Equatable {
     var isActive: Bool = true
 }
 
+
+enum ChildLinkStatus: String, Codable { case pending = "In attesa", approved = "Approvata", rejected = "Rifiutata" }
+
+struct ChildLinkRequest: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var parentName: String
+    var parentEmail: String
+    var studentID: UUID
+    var studentName: String
+    var authorizationCode: String
+    var status: ChildLinkStatus = .pending
+    var createdAt: Date = Date()
+}
+
+enum ChildLinkResult: Equatable {
+    case success
+    case emptyCode
+    case invalidCode
+    case inactiveCode
+    case exhaustedCode
+    case wrongCodeRole
+    case studentNotFound
+    case alreadyLinked
+    case alreadyPending
+}
+
 enum InviteUseResult: Equatable {
     case success(SchoolMember)
     case emptyFields

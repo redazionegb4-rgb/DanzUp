@@ -1,22 +1,3 @@
-DanzUp Build 27 - Flusso codici invito completo
+DanzUp Build 28
 
-Novità:
-- I codici vengono verificati davvero durante l'accesso di segreteria, insegnanti, genitori e allievi.
-- Un codice inesistente, disattivato, esaurito o non compatibile mostra un errore chiaro.
-- Ogni utilizzo valido riduce gli utilizzi disponibili del codice.
-- Al termine degli utilizzi il codice viene disattivato automaticamente.
-- L'utente viene collegato alla scuola e compare nella sezione "Utenti collegati alla scuola".
-- La scuola può bloccare, riattivare o rimuovere gli utenti collegati.
-- I dati restano salvati localmente sul dispositivo in questa build demo.
-
-Test consigliato:
-1. Accedi come scuola.
-2. Apri Profilo > Inviti e codici accesso.
-3. Genera un codice e copialo.
-4. Esci dall'account.
-5. Accedi come ruolo corrispondente usando nome, email, password e codice.
-6. Esci e rientra come scuola.
-7. Verifica il nuovo utente e il conteggio aggiornato del codice.
-
-Compatibilità: Xcode 15, iOS 16+
-Versione 1.0 - Build 27
+Corretto il collegamento figlio: la richiesta viene salvata, appare alla scuola e deve essere approvata. Dopo approvazione il profilo compare al genitore.
