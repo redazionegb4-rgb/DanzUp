@@ -1,0 +1,16 @@
+DanzUp Build 46
+
+- Accesso unico con email e password per tutti gli account già attivati.
+- Il codice invito viene richiesto soltanto durante la prima registrazione.
+- La prima registrazione salva il nuovo account e la password sul dispositivo.
+- Tentando di riutilizzare la stessa email, l'app invita a usare il login normale.
+- Accessi separati automaticamente in base al ruolo associato all'account.
+- Icona nella Home identica all'icona ufficiale dell'app.
+
+Credenziali demo:
+Proprietario: proprietario@danzup.demo / DanzUp123
+Insegnante: giulia@danzup.demo / DanzUp123
+Segreteria: laura@danzup.demo / DanzUp123
+Genitore: anna@danzup.demo / DanzUp123
+
+Nota: autenticazione e dati sono ancora locali. Per accessi tra dispositivi diversi servirà il database online.

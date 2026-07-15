@@ -12,6 +12,14 @@ enum UserRole: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+
+enum LoginResult: Equatable {
+    case success
+    case emptyFields
+    case invalidCredentials
+    case inactiveAccount
+}
+
 enum SubscriptionPlan: String, CaseIterable, Identifiable, Codable {
     case base = "Base", pro = "Pro", premium = "Premium"
     var id: String { rawValue }

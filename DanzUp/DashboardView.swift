@@ -10,8 +10,16 @@ struct DashboardView: View {
             case .parent, .student: FamilyDashboard()
             }
         }
-        .navigationTitle("DanzUp")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    AppIconMark(size: 30)
+                    Text("DanzUp").font(.headline)
+                }
+            }
+        }
     }
 }
 

@@ -19,6 +19,12 @@ final class AppStore: ObservableObject {
     @Published var schoolMembers: [SchoolMember] = AppStore.demoMembers
     @Published var parentInvitations: [ParentInvitation] = []
     @Published var currentMember: SchoolMember?
+    @Published var accountPasswords: [String: String] = [
+        "proprietario@danzup.demo": "DanzUp123",
+        "giulia@danzup.demo": "DanzUp123",
+        "laura@danzup.demo": "DanzUp123",
+        "anna@danzup.demo": "DanzUp123"
+    ]
     @Published var childLinkRequests: [ChildLinkRequest] = []
     @Published var linkedChildIDsByParent: [String: [UUID]] = [:]
     @Published var lastSavedAt: Date?
@@ -47,6 +53,28 @@ final class AppStore: ObservableObject {
     var duePaymentsCount: Int { students.filter { $0.paymentStatus == .due }.count }
     var medicalAlertsCount: Int { students.filter { $0.medicalStatus != .valid }.count }
 
+    func login(email rawEmail: String, password: String) -> LoginResult {
+        let email = rawEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !email.isEmpty, !password.isEmpty else { return .emptyFields }
+
+        if email == "proprietario@danzup.demo", accountPasswords[email] == password {
+            userRole = .owner
+            currentMember = nil
+            isAuthenticated = true
+            saveLocalData()
+            return .success
+        }
+
+        guard let member = schoolMembers.first(where: { $0.email.lowercased() == email }) else { return .invalidCredentials }
+        guard member.isActive else { return .inactiveAccount }
+        guard accountPasswords[email] == password else { return .invalidCredentials }
+        currentMember = member
+        userRole = member.role
+        isAuthenticated = true
+        saveLocalData()
+        return .success
+    }
+
     func enterDemo(role: UserRole) {
         userRole = role
 
@@ -61,6 +89,7 @@ final class AppStore: ObservableObject {
                 inviteCode: "DEMO-FAMIGLIA"
             )
             currentMember = demoMember
+            accountPasswords[demoEmail] = "DanzUp123"
 
             if let aliceID = students.first(where: { $0.name == "Alice Romano" })?.id {
                 linkedChildIDsByParent[demoEmail] = [aliceID]
@@ -73,6 +102,7 @@ final class AppStore: ObservableObject {
                 inviteCode: "DEMO-ALLIEVO"
             )
             currentMember = demoMember
+            accountPasswords[demoMember.email.lowercased()] = "DanzUp123"
         } else {
             currentMember = nil
         }
@@ -82,7 +112,7 @@ final class AppStore: ObservableObject {
     }
 
     @discardableResult
-    func useInvite(code rawCode: String, email rawEmail: String, name rawName: String, selectedRole: UserRole) -> InviteUseResult {
+    func useInvite(code rawCode: String, email rawEmail: String, name rawName: String, selectedRole: UserRole, password: String) -> InviteUseResult {
         let code = rawCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         let email = rawEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -94,6 +124,7 @@ final class AppStore: ObservableObject {
             guard !schoolMembers.contains(where: { $0.email.lowercased() == email }) else { return .emailAlreadyRegistered }
             let member = SchoolMember(name: name, email: email, role: .parent, inviteCode: invitation.code)
             schoolMembers.insert(member, at: 0)
+            accountPasswords[email] = password
             linkedChildIDsByParent[email] = invitation.studentIDs
             parentInvitations[invitationIndex].isActive = false
             currentMember = member
@@ -115,6 +146,7 @@ final class AppStore: ObservableObject {
         if inviteCodes[index].remainingUses == 0 { inviteCodes[index].isActive = false }
         let member = SchoolMember(name: name, email: email, role: selectedRole, inviteCode: inviteCodes[index].code)
         schoolMembers.insert(member, at: 0)
+        accountPasswords[email] = password
         currentMember = member
         userRole = selectedRole
         isAuthenticated = true
@@ -572,6 +604,7 @@ final class AppStore: ObservableObject {
         parentInvitations = []
         childLinkRequests = []
         linkedChildIDsByParent = [:]
+        accountPasswords = ["proprietario@danzup.demo": "DanzUp123", "giulia@danzup.demo": "DanzUp123", "laura@danzup.demo": "DanzUp123", "anna@danzup.demo": "DanzUp123"]
         ensureStudentFamilyCodes()
         ensureCourseEnrollments()
         ensureTeacherAssignments()
@@ -604,7 +637,8 @@ final class AppStore: ObservableObject {
             paymentRecords: paymentRecords,
             documents: documents,
             danceEvents: danceEvents,
-            staffPermissions: staffPermissions
+            staffPermissions: staffPermissions,
+            accountPasswords: accountPasswords
         )
         do {
             let data = try JSONEncoder().encode(snapshot)
@@ -643,6 +677,7 @@ final class AppStore: ObservableObject {
             documents = snapshot.documents ?? []
             danceEvents = snapshot.danceEvents ?? []
             staffPermissions = snapshot.staffPermissions ?? [:]
+            accountPasswords = snapshot.accountPasswords ?? accountPasswords
         } catch {
             UserDefaults.standard.removeObject(forKey: persistenceKey)
         }
@@ -671,6 +706,7 @@ final class AppStore: ObservableObject {
         var documents: [SchoolDocument]?
         var danceEvents: [DanceEvent]?
         var staffPermissions: [UUID: StaffPermissions]?
+        var accountPasswords: [String: String]?
     }
 
     static let demoMembers: [SchoolMember] = [
