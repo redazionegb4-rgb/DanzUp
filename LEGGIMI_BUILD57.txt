@@ -1,0 +1,5 @@
+DanzUp Build 57
+
+Correzione: rinominata la proprietà body della card comunicazioni in message per evitare la ridichiarazione di View.body.
+Build number aggiornato a 57.
+Compatibile con Xcode 15 e iOS 16.

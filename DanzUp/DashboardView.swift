@@ -266,7 +266,7 @@ private struct StaffDashboard: View {
                     NavigationLink { StaffMessagesView() } label: {
                         ModernAnnouncementCard(
                             title: store.announcements.first?.title ?? "Nessun avviso",
-                            body: store.announcements.first?.body ?? "Quando la scuola pubblicherà una comunicazione comparirà qui."
+                            message: store.announcements.first?.body ?? "Quando la scuola pubblicherà una comunicazione comparirà qui."
                         )
                     }
                     .buttonStyle(.plain)
@@ -332,7 +332,7 @@ private struct FamilyDashboard: View {
                     NavigationLink { StaffMessagesView() } label: {
                         ModernAnnouncementCard(
                             title: store.announcements.first?.title ?? "Nessun avviso",
-                            body: store.announcements.first?.body ?? "Le comunicazioni della scuola appariranno qui."
+                            message: store.announcements.first?.body ?? "Le comunicazioni della scuola appariranno qui."
                         )
                     }
                     .buttonStyle(.plain)
@@ -683,7 +683,7 @@ private struct FeaturedLessonCard: View {
 
 private struct ModernAnnouncementCard: View {
     let title: String
-    let body: String
+    let message: String
 
     var body: some View {
         HStack(alignment: .top, spacing: 13) {
@@ -700,7 +700,7 @@ private struct ModernAnnouncementCard: View {
                     .font(.headline)
                     .foregroundColor(.primary)
                     .lineLimit(2)
-                Text(body)
+                Text(message)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(3)
