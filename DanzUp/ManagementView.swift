@@ -18,7 +18,7 @@ struct ManagementView: View {
             ScreenBackground()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    SectionTitle("Centro gestione", subtitle: "Operazioni riservate alla scuola e alla segreteria")
+                    DZHeroHeader(eyebrow: "DANZUP CONTROL", title: "Centro gestione", subtitle: "Tutto ciò che serve per organizzare la scuola in un unico spazio", systemImage: "square.grid.2x2.fill", accent: .dzPurple)
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 13) {
                         ForEach(items) { item in
                             NavigationLink { destination(for: item.kind) } label: { ManagementTile(item: item) }
@@ -94,6 +94,9 @@ struct OwnerAttendanceView: View {
 
     var body: some View {
         List {
+            Section { DZListHero(title: "Presenze scuola", subtitle: "Apri il registro di ogni corso e controlla i totali", icon: "checkmark.circle.fill", accent: .dzMint) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Lezione") {
                 Picker("Corso", selection: $selectedCourseID) {
                     Text("Seleziona corso").tag(UUID?.none)
@@ -166,6 +169,9 @@ struct PaymentsManagementView: View {
 
     var body: some View {
         List {
+            Section { DZListHero(title: "Gestione quote", subtitle: "Filtra, aggiorna e registra i pagamenti", icon: "eurosign.circle.fill", accent: .dzOrange) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section {
                 Picker("Stato", selection: $filter) {
                     ForEach(["Tutte", "Pagate", "Da pagare", "Scadute"], id: \.self) { Text($0) }
@@ -223,6 +229,9 @@ struct MedicalCertificatesView: View {
     private var visibleStudents: [Student] { showOnlyAlerts ? store.students.filter { $0.medicalStatus != .valid } : store.students }
     var body: some View {
         List {
+            Section { DZListHero(title: "Certificati medici", subtitle: "Controlla validità, scadenze e documenti", icon: "cross.case.fill", accent: .dzSky) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Scadenze") {
                 ForEach(visibleStudents) { student in
                     Button { selectedStudent = student } label: {
@@ -258,6 +267,9 @@ struct CommunicationsManagementView: View {
 
     var body: some View {
         List {
+            Section { DZListHero(title: "Comunicazioni", subtitle: "Crea avvisi mirati e controlla gli ultimi invii", icon: "megaphone.fill", accent: .dzFuchsia) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Comunicazioni pubblicate") {
                 ForEach(store.announcements) { item in
                     VStack(alignment: .leading, spacing: 5) {
@@ -302,6 +314,9 @@ private struct CommunicationComposerView: View {
 struct EventsManagementView: View {
     var body: some View {
         List {
+            Section { DZListHero(title: "Eventi", subtitle: "Saggi, prove, costumi e partecipanti", icon: "sparkles", accent: .dzFuchsia) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Evento attivo") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Saggio d’estate 2026").font(.title3.bold())
@@ -334,6 +349,9 @@ struct InviteCenterView: View {
 
     var body: some View {
         List {
+            Section { DZListHero(title: "Inviti e accessi", subtitle: "Codici, richieste e utenti collegati alla scuola", icon: "qrcode", accent: .dzPurple) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             InviteAccessHeaderSection()
 
             StudentCodesSection(copiedStudentCode: $copiedStudentCode)

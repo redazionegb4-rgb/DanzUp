@@ -59,6 +59,9 @@ struct StaffCoursesView: View {
     private var visibleLessons: [CourseLesson] { store.lessonsForCurrentStaff() }
     var body: some View {
         List {
+            Section { DZListHero(title: "Le mie lezioni", subtitle: "Agenda, classi e registro in un solo tocco", icon: "figure.dance", accent: .dzPurple) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             ForEach(visibleLessons) { lesson in
                 NavigationLink { LessonAttendanceView(lesson: lesson) } label: {
                     VStack(alignment: .leading, spacing: 5) {
@@ -76,6 +79,9 @@ struct AttendanceRegisterView: View {
     @EnvironmentObject var store: AppStore
     var body: some View {
         List {
+            Section { DZListHero(title: "Registro presenze", subtitle: "Compila e controlla ogni lezione assegnata", icon: "checkmark.circle.fill", accent: .dzMint) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Lezioni") {
                 ForEach(store.lessonsForCurrentStaff()) { lesson in
                     NavigationLink { LessonAttendanceView(lesson: lesson) } label: {
@@ -95,6 +101,9 @@ struct StaffMessagesView: View {
     @EnvironmentObject var store: AppStore
     var body: some View {
         List {
+            Section { DZListHero(title: "Messaggi", subtitle: "Comunicazioni della scuola e avvisi ai corsi", icon: "bubble.left.and.bubble.right.fill", accent: .dzFuchsia) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Comunicazioni della scuola") {
                 ForEach(store.announcements) { item in
                     VStack(alignment: .leading, spacing: 5) { Text(item.title).font(.headline); Text(item.body).font(.subheadline).foregroundColor(.secondary); Text(item.audience).font(.caption.bold()).foregroundColor(.dzPurple) }.padding(.vertical, 4)
@@ -111,6 +120,9 @@ struct FamilyCalendarView: View {
     private var lessons: [CourseLesson] { children.flatMap { store.lessonsForStudent($0.id) }.sorted { $0.start < $1.start } }
     var body: some View {
         List {
+            Section { DZListHero(title: "Calendario", subtitle: "Lezioni, prove ed eventi dei profili collegati", icon: "calendar", accent: .dzSky) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Calendario reale") {
                 if lessons.isEmpty { Text("Nessuna lezione programmata").foregroundColor(.secondary) }
                 ForEach(lessons) { lesson in
@@ -237,6 +249,9 @@ private struct FamilyCourseDetailView: View {
 
     var body: some View {
         List {
+            Section { DZListHero(title: course.title, subtitle: "Dettagli, calendario e situazione di \(child.name)", icon: "figure.dance", accent: .dzPurple) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Allievo") {
                 LabeledContent("Nome", value: child.name)
                 LabeledContent("Stato", value: "Iscritto")
@@ -266,6 +281,9 @@ struct FamilyDocumentsView: View {
     private var children: [Student] { store.userRole == .parent ? store.linkedChildrenForCurrentParent() : Array(store.students.prefix(1)) }
     var body: some View {
         List {
+            Section { DZListHero(title: "Documenti", subtitle: "Certificati, allegati, quote e ricevute", icon: "doc.text.fill", accent: .dzOrange) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             ForEach(children) { child in
                 Section(child.name) {
                     ForEach(store.documentsForStudent(child.id)) { document in
@@ -289,6 +307,9 @@ struct FamilyAttendanceView: View {
     private var child: Student? { store.userRole == .parent ? store.linkedChildrenForCurrentParent().first : store.students.first }
     var body: some View {
         List {
+            Section { DZListHero(title: "Presenze", subtitle: "Storico aggiornato delle lezioni frequentate", icon: "chart.bar.fill", accent: .dzMint) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             if let child {
                 Section("Storico di \(child.name)") {
                     let records = store.attendanceForStudent(child.id)
@@ -307,6 +328,9 @@ struct FamilyPaymentsView: View {
     private var child: Student? { store.userRole == .parent ? store.linkedChildrenForCurrentParent().first : store.students.first }
     var body: some View {
         List {
+            Section { DZListHero(title: "Quote e ricevute", subtitle: "Pagamenti, scadenze e stato delle quote", icon: "eurosign.circle.fill", accent: .dzOrange) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             if let child {
                 Section(child.name) {
                     ForEach(store.paymentsForStudent(child.id)) { payment in
@@ -325,6 +349,9 @@ struct FamilyPaymentsView: View {
 struct FamilyMedicalView: View {
     var body: some View {
         List {
+            Section { DZListHero(title: "Certificato medico", subtitle: "Stato, scadenza e caricamento documento", icon: "cross.case.fill", accent: .dzSky) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Certificato medico") { LabeledContent("Stato", value: "Valido"); LabeledContent("Scadenza", value: "18/11/2026") }
             Section("Documento") { Label("Visualizza certificato", systemImage: "doc.fill"); Label("Carica nuovo certificato", systemImage: "square.and.arrow.up.fill") }
         }.modernScreen().navigationTitle("Certificato")

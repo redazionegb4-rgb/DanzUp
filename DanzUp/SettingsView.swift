@@ -193,21 +193,31 @@ private struct ProfileHeader: View {
     let role: String
     let icon: String
 
-    var body: some View {
-        HStack(spacing: 15) {
-            ZStack {
-                BrandGradient().clipShape(RoundedRectangle(cornerRadius: 20))
-                Image(systemName: icon).font(.title2.bold()).foregroundColor(.white)
-            }
-            .frame(width: 64, height: 64)
+    @State private var appeared = false
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
-                Text(subtitle).foregroundColor(.secondary)
-                Text(role).font(.caption.bold()).foregroundColor(.dzPurple)
-            }
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(colors: [.dzNavy, .dzPurple, .dzFuchsia.opacity(0.82)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            Circle().fill(Color.white.opacity(0.10)).frame(width: 120, height: 120).offset(x: 245, y: -35)
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.white.opacity(0.16))
+                    Image(systemName: icon).font(.system(size: 30, weight: .bold)).foregroundColor(.white)
+                }.frame(width: 72, height: 72)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(role.uppercased()).font(.caption2.bold()).tracking(1.2).foregroundColor(.white.opacity(0.70))
+                    Text(title).font(.title2.bold()).foregroundColor(.white)
+                    Text(subtitle).font(.subheadline).foregroundColor(.white.opacity(0.82))
+                }
+                Spacer()
+            }.padding(20)
         }
-        .padding(.vertical, 6)
+        .frame(height: 132)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: Color.dzPurple.opacity(0.25), radius: 20, y: 10)
+        .opacity(appeared ? 1 : 0).offset(y: appeared ? 0 : 10)
+        .onAppear { withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { appeared = true } }
+        .padding(.vertical, 4)
     }
 }
 

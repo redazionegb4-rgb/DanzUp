@@ -301,3 +301,46 @@ struct DZFloatingAddButton: View {
         .accessibilityLabel("Aggiungi")
     }
 }
+
+
+// MARK: - Build 60 immersive section components
+struct DZListHero: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    var accent: Color = .dzPurple
+    @State private var visible = false
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(colors: [Color.dzNavy, accent.opacity(0.90), Color.dzFuchsia.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            Circle().fill(Color.white.opacity(0.10)).frame(width: 110, height: 110).offset(x: 245, y: -32)
+            HStack(spacing: 15) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Color.white.opacity(0.16))
+                    Image(systemName: icon).font(.system(size: 28, weight: .bold)).foregroundStyle(.white)
+                }.frame(width: 62, height: 62)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title).font(.title2.bold()).foregroundStyle(.white)
+                    Text(subtitle).font(.caption).foregroundStyle(.white.opacity(0.82)).lineLimit(2)
+                }
+                Spacer(minLength: 0)
+            }.padding(18)
+        }
+        .frame(height: 120)
+        .clipShape(RoundedRectangle(cornerRadius: 27, style: .continuous))
+        .shadow(color: accent.opacity(0.22), radius: 18, y: 10)
+        .opacity(visible ? 1 : 0).offset(y: visible ? 0 : 10)
+        .onAppear { withAnimation(.spring(response: 0.48, dampingFraction: 0.84)) { visible = true } }
+    }
+}
+
+struct DZAnimatedStatusDot: View {
+    let color: Color
+    @State private var pulse = false
+    var body: some View {
+        Circle().fill(color).frame(width: 9, height: 9)
+            .overlay(Circle().stroke(color.opacity(0.35), lineWidth: 5).scaleEffect(pulse ? 1.5 : 0.75).opacity(pulse ? 0 : 1))
+            .onAppear { withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) { pulse = true } }
+    }
+}

@@ -7,6 +7,9 @@ struct LessonsManagementView: View {
 
     var body: some View {
         List {
+            Section { DZListHero(title: "Lezioni e calendario", subtitle: "Programma, modifica o recupera ogni appuntamento", icon: "calendar.badge.clock", accent: .dzSky) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Prossime lezioni") {
                 ForEach(store.lessons.sorted { $0.start < $1.start }) { lesson in
                     Button { selectedLesson = lesson } label: {
@@ -111,6 +114,9 @@ struct LessonAttendanceView: View {
     private var students: [Student] { store.studentsForCourse(lesson.courseID) }
     var body: some View {
         List {
+            Section { DZListHero(title: "Registro lezione", subtitle: "Presenze, assenze, giustificazioni e prove", icon: "person.3.fill", accent: .dzMint) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Lezione") { LessonRow(lesson: lesson) }
             Section("Registro") {
                 if students.isEmpty { Text("Nessun allievo iscritto").foregroundColor(.secondary) }
@@ -136,6 +142,9 @@ struct PaymentsLedgerView: View {
     @State private var showNew = false
     var body: some View {
         List {
+            Section { DZListHero(title: "Quote reali", subtitle: "Controlla incassi, saldi e prossime scadenze", icon: "creditcard.fill", accent: .dzOrange) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Quote e pagamenti") {
                 ForEach(store.paymentRecords) { record in
                     VStack(alignment: .leading, spacing: 5) {
@@ -181,6 +190,9 @@ struct DocumentsOperationalView: View {
     @State private var showNew = false
     var body: some View {
         List {
+            Section { DZListHero(title: "Documenti", subtitle: "Certificati e allegati da verificare", icon: "doc.badge.gearshape.fill", accent: .dzSky) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             Section("Documenti") {
                 ForEach(store.documents) { document in
                     VStack(alignment: .leading, spacing: 5) {
@@ -220,6 +232,9 @@ struct EventsOperationalView: View {
     @State private var showNew = false
     var body: some View {
         List {
+            Section { DZListHero(title: "Saggi ed eventi", subtitle: "Partecipanti, prove, costumi e quote", icon: "star.fill", accent: .dzFuchsia) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             ForEach(store.danceEvents) { event in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(event.title).font(.headline)
@@ -253,6 +268,9 @@ struct StaffPermissionsView: View {
     @EnvironmentObject var store: AppStore
     var body: some View {
         List {
+            Section { DZListHero(title: "Permessi staff", subtitle: "Scegli cosa può vedere e modificare ogni ruolo", icon: "lock.shield.fill", accent: .dzPurple) }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                .listRowBackground(Color.clear)
             ForEach(store.schoolMembers.filter { $0.role == .secretary }) { member in
                 NavigationLink(member.name) { StaffPermissionEditor(member: member) }
             }

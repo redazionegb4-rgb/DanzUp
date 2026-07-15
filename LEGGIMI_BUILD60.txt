@@ -1,0 +1,3 @@
+DanzUp Build 60 - Redesign esteso
+
+Restyling applicato alle aree Gestione, Scuola, lezioni, presenze, messaggi, documenti, calendario, pagamenti e ai profili scuola, staff e famiglia. Compatibile con Xcode 15 e iOS 16.
