@@ -68,7 +68,7 @@ struct StaffCoursesView: View {
                     }.padding(.vertical, 5)
                 }
             }
-        }.navigationTitle("Le mie lezioni")
+        }.modernScreen().navigationTitle("Le mie lezioni")
     }
 }
 
@@ -87,7 +87,7 @@ struct AttendanceRegisterView: View {
                     }
                 }
             }
-        }.navigationTitle("Presenze")
+        }.modernScreen().navigationTitle("Presenze")
     }
 }
 
@@ -101,7 +101,7 @@ struct StaffMessagesView: View {
                 }
             }
             Section("Azioni") { Label("Scrivi alla segreteria", systemImage: "paperplane.fill"); Label("Avvisa il tuo corso", systemImage: "megaphone.fill") }
-        }.navigationTitle("Messaggi")
+        }.modernScreen().navigationTitle("Messaggi")
     }
 }
 
@@ -120,7 +120,7 @@ struct FamilyCalendarView: View {
             Section("Eventi") {
                 ForEach(store.danceEvents) { event in Label("\(event.title) • \(event.date.formatted(date: .abbreviated, time: .shortened))", systemImage: "star.fill") }
             }
-        }.navigationTitle("Calendario")
+        }.modernScreen().navigationTitle("Calendario")
     }
 }
 
@@ -255,6 +255,7 @@ private struct FamilyCourseDetailView: View {
                 NavigationLink("Quote e ricevute") { FamilyPaymentsView() }
             }
         }
+        .modernScreen()
         .navigationTitle(course.title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -279,7 +280,7 @@ struct FamilyDocumentsView: View {
                     }
                 }
             }
-        }.navigationTitle("Documenti")
+        }.modernScreen().navigationTitle("Documenti")
     }
 }
 
@@ -297,7 +298,7 @@ struct FamilyAttendanceView: View {
                     }
                 }
             }
-        }.navigationTitle("Le mie presenze")
+        }.modernScreen().navigationTitle("Le mie presenze")
     }
 }
 
@@ -317,7 +318,7 @@ struct FamilyPaymentsView: View {
                     }
                 }
             }
-        }.navigationTitle("Quote e ricevute")
+        }.modernScreen().navigationTitle("Quote e ricevute")
     }
 }
 
@@ -326,6 +327,6 @@ struct FamilyMedicalView: View {
         List {
             Section("Certificato medico") { LabeledContent("Stato", value: "Valido"); LabeledContent("Scadenza", value: "18/11/2026") }
             Section("Documento") { Label("Visualizza certificato", systemImage: "doc.fill"); Label("Carica nuovo certificato", systemImage: "square.and.arrow.up.fill") }
-        }.navigationTitle("Certificato")
+        }.modernScreen().navigationTitle("Certificato")
     }
 }

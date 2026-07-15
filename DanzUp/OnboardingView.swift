@@ -90,6 +90,7 @@ struct AuthFlowView: View {
                 }.padding()
             }
         }
+        .modernScreen()
         .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
         .alert(alertTitle, isPresented: $showAlert) { Button("OK") {} } message: { Text(alertMessage) }
     }

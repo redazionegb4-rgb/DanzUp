@@ -14,6 +14,7 @@ struct DashboardView: View {
                 FamilyDashboard()
             }
         }
+        .modernScreen()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

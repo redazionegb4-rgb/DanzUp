@@ -66,6 +66,7 @@ private struct OwnerSettingsView: View {
             CommonInformationSection(build: "36")
             LogoutSection()
         }
+        .modernScreen()
         .navigationTitle("Scuola")
         .sheet(isPresented: $showPlans) { PlansView() }
         .alert("Acquisti ripristinati", isPresented: $showRestoreMessage) { Button("OK", role: .cancel) {} } message: { Text("Nella build demo non ci sono ancora acquisti reali. Il collegamento StoreKit verrà attivato nella fase abbonamenti.") }
@@ -111,6 +112,7 @@ private struct StaffProfileView: View {
             CommonInformationSection(build: "36")
             LogoutSection()
         }
+        .modernScreen()
         .navigationTitle("Profilo")
     }
 }
@@ -180,6 +182,7 @@ private struct FamilyProfileView: View {
             CommonInformationSection(build: "36")
             LogoutSection()
         }
+        .modernScreen()
         .navigationTitle("Profilo")
     }
 }
@@ -261,6 +264,7 @@ struct DiagnosticsView: View {
                     .font(.caption).foregroundColor(.secondary)
             }
         }
+        .modernScreen()
         .navigationTitle("Diagnostica")
         .alert("Dati salvati", isPresented: $showSaved) { Button("OK", role: .cancel) {} }
         .confirmationDialog("Ripristinare tutti i dati demo?", isPresented: $showResetConfirmation, titleVisibility: .visible) {
@@ -342,6 +346,7 @@ private struct SchoolDataView: View {
             }
             Section { Button("Salva modifiche") {} }
         }
+        .modernScreen()
         .navigationTitle("Dati scuola")
     }
 }
@@ -354,6 +359,7 @@ private struct RolesPermissionsView: View {
             Section("Insegnante") { PermissionRow(title: "Corsi assegnati e presenze", enabled: true); PermissionRow(title: "Dati economici della scuola", enabled: false) }
             Section("Genitore / Allievo") { PermissionRow(title: "Visualizzazione dati personali", enabled: true); PermissionRow(title: "Gestione scuola", enabled: false) }
         }
+        .modernScreen()
         .navigationTitle("Autorizzazioni")
     }
 }
@@ -385,6 +391,7 @@ private struct BranchesView: View {
             }
             Section { Label("Aggiungi sede o sala", systemImage: "plus.circle.fill") }
         }
+        .modernScreen()
         .navigationTitle("Sedi e sale")
     }
 }
@@ -402,6 +409,7 @@ private struct PersonalAvailabilityView: View {
                 Label("Segnala indisponibilità", systemImage: "calendar.badge.exclamationmark")
             }
         }
+        .modernScreen()
         .navigationTitle("Disponibilità")
     }
 }
@@ -418,18 +426,18 @@ private struct EditableProfileView: View {
         Form {
             Section("Informazioni") { TextField("Nome", text: $name); TextField("Cognome", text: $surname); TextField("Email", text: $email).keyboardType(.emailAddress).textInputAutocapitalization(.never); TextField("Telefono", text: $phone).keyboardType(.phonePad) }
             Section { Button("Salva modifiche") { saved = true } }
-        }.navigationTitle(title).alert("Modifiche salvate", isPresented: $saved) { Button("OK") {} }
+        }.modernScreen().navigationTitle(title).alert("Modifiche salvate", isPresented: $saved) { Button("OK") {} }
     }
 }
 
 private struct ChangePasswordView: View {
     @State private var current = ""; @State private var newPassword = ""; @State private var confirm = ""; @State private var message = false
-    var body: some View { Form { Section("Sicurezza") { SecureField("Password attuale", text: $current); SecureField("Nuova password", text: $newPassword); SecureField("Conferma nuova password", text: $confirm) }; Section { Button("Aggiorna password") { message = true }.disabled(newPassword.count < 8 || newPassword != confirm) }; Section { Text("La password deve contenere almeno 8 caratteri.").font(.caption).foregroundColor(.secondary) } }.navigationTitle("Cambia password").alert("Password aggiornata", isPresented: $message) { Button("OK") {} } }
+    var body: some View { Form { Section("Sicurezza") { SecureField("Password attuale", text: $current); SecureField("Nuova password", text: $newPassword); SecureField("Conferma nuova password", text: $confirm) }; Section { Button("Aggiorna password") { message = true }.disabled(newPassword.count < 8 || newPassword != confirm) }; Section { Text("La password deve contenere almeno 8 caratteri.").font(.caption).foregroundColor(.secondary) } }.modernScreen().navigationTitle("Cambia password").alert("Password aggiornata", isPresented: $message) { Button("OK") {} } }
 }
 
 private struct EmergencyContactsView: View {
     @State private var name = ""; @State private var relation = ""; @State private var phone = ""; @State private var saved = false
-    var body: some View { Form { Section("Contatto") { TextField("Nome e cognome", text: $name); TextField("Relazione", text: $relation); TextField("Telefono", text: $phone).keyboardType(.phonePad) }; Section { Button("Salva contatto") { saved = true } } }.navigationTitle("Contatto di emergenza").alert("Contatto salvato", isPresented: $saved) { Button("OK") {} } }
+    var body: some View { Form { Section("Contatto") { TextField("Nome e cognome", text: $name); TextField("Relazione", text: $relation); TextField("Telefono", text: $phone).keyboardType(.phonePad) }; Section { Button("Salva contatto") { saved = true } } }.modernScreen().navigationTitle("Contatto di emergenza").alert("Contatto salvato", isPresented: $saved) { Button("OK") {} } }
 }
 
 private struct LinkChildView: View {
@@ -474,6 +482,7 @@ private struct LinkChildView: View {
                     .disabled(code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+        .modernScreen()
         .navigationTitle("Collega un figlio")
         .alert(alertTitle, isPresented: $showAlert) {
             Button("OK") { if success { dismiss() } }
@@ -504,5 +513,5 @@ private struct LinkChildView: View {
 
 private struct InfoPageView: View {
     let title: String; let text: String; let icon: String
-    var body: some View { ScrollView { VStack(spacing: 20) { Image(systemName: icon).font(.system(size: 48)).foregroundColor(.dzPurple); Text(title).font(.largeTitle.bold()); Text(text).foregroundColor(.secondary).multilineTextAlignment(.center) }.padding(30) }.navigationTitle(title).navigationBarTitleDisplayMode(.inline) }
+    var body: some View { ScrollView { VStack(spacing: 20) { Image(systemName: icon).font(.system(size: 48)).foregroundColor(.dzPurple); Text(title).font(.largeTitle.bold()); Text(text).foregroundColor(.secondary).multilineTextAlignment(.center) }.padding(30) }.modernScreen().navigationTitle(title).navigationBarTitleDisplayMode(.inline) }
 }

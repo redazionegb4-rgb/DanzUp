@@ -42,6 +42,7 @@ struct StudentsView: View {
                 }
             }
         }
+        .modernScreen()
         .navigationTitle("Allievi")
         .searchable(text: $search, prompt: "Cerca allievo o corso")
         .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { showAdd = true } label: { Image(systemName: "person.badge.plus") } } }

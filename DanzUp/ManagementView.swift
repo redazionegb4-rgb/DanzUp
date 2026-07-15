@@ -29,6 +29,7 @@ struct ManagementView: View {
                 .padding()
             }
         }
+        .modernScreen()
         .navigationTitle("Gestione")
     }
 
@@ -136,6 +137,7 @@ struct OwnerAttendanceView: View {
                 Section { Button("Conferma registro") { store.saveLocalData(); showSaved = true } }
             }
         }
+        .modernScreen()
         .navigationTitle("Presenze")
         .onAppear {
             if selectedCourseID == nil { selectedCourseID = store.courses.first?.id }
@@ -189,6 +191,7 @@ struct PaymentsManagementView: View {
             }
             Section { Button { selectedStudent = filteredStudents.first } label: { Label("Registra nuovo pagamento", systemImage: "plus.circle.fill") }; Button {} label: { Label("Esporta riepilogo", systemImage: "square.and.arrow.up") } }
         }
+        .modernScreen()
         .navigationTitle("Quote")
         .sheet(item: $selectedStudent) { student in PaymentEditorView(student: student) }
     }
@@ -233,6 +236,7 @@ struct MedicalCertificatesView: View {
             }
             Section("Azioni") { Button {} label: { Label("Invia promemoria scadenze", systemImage: "bell.badge.fill") }; Button { selectedStudent = visibleStudents.first } label: { Label("Carica certificato", systemImage: "square.and.arrow.up.fill") } }
         }
+        .modernScreen()
         .navigationTitle("Certificati")
         .sheet(item: $selectedStudent) { student in MedicalEditorView(student: student) }
     }
@@ -264,6 +268,7 @@ struct CommunicationsManagementView: View {
                 }
             }
         }
+        .modernScreen()
         .navigationTitle("Comunicazioni")
         .toolbar { Button { showComposer = true } label: { Image(systemName: "square.and.pencil") } }
         .sheet(isPresented: $showComposer) { CommunicationComposerView() }
@@ -315,6 +320,7 @@ struct EventsManagementView: View {
             }
             Section { Label("Crea nuovo evento", systemImage: "plus.circle.fill") }
         }
+        .modernScreen()
         .navigationTitle("Saggi ed eventi")
     }
 }
@@ -349,6 +355,7 @@ struct InviteCenterView: View {
                 Text("Scorri un codice verso sinistra per rigenerarlo o eliminarlo; verso destra per attivarlo o disattivarlo.")
             }
         }
+        .modernScreen()
         .navigationTitle("Inviti e codici")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

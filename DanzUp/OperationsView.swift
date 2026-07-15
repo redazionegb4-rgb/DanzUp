@@ -16,6 +16,7 @@ struct LessonsManagementView: View {
                 }
             }
         }
+        .modernScreen()
         .navigationTitle("Lezioni e calendario")
         .toolbar { Button { showEditor = true } label: { Image(systemName: "plus") } }
         .sheet(isPresented: $showEditor) { LessonEditorView() }
@@ -126,7 +127,7 @@ struct LessonAttendanceView: View {
                     }
                 }
             }
-        }.navigationTitle("Registro lezione")
+        }.modernScreen().navigationTitle("Registro lezione")
     }
 }
 
@@ -144,7 +145,7 @@ struct PaymentsLedgerView: View {
                     }.padding(.vertical, 4)
                 }
             }
-        }.navigationTitle("Quote reali").toolbar { Button { showNew = true } label: { Image(systemName: "plus") } }.sheet(isPresented: $showNew) { PaymentRecordEditor() }
+        }.modernScreen().navigationTitle("Quote reali").toolbar { Button { showNew = true } label: { Image(systemName: "plus") } }.sheet(isPresented: $showNew) { PaymentRecordEditor() }
     }
 }
 
@@ -171,7 +172,7 @@ private struct PaymentRecordEditor: View {
             DatePicker("Scadenza", selection: $dueDate, displayedComponents: .date)
             Picker("Stato", selection: $status) { Text("Pagata").tag(PaymentStatus.paid); Text("Da pagare").tag(PaymentStatus.due); Text("Scaduta").tag(PaymentStatus.late) }
             TextField("Metodo", text: $method)
-        }.navigationTitle("Nuova quota").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { if let studentID { store.addPaymentRecord(PaymentRecord(studentID: studentID, courseID: courseID, type: type, title: title, amount: amount, paidAmount: paidAmount, dueDate: dueDate, status: status, method: method)); dismiss() } }.disabled(studentID == nil || title.isEmpty) } } }
+        }.modernScreen().navigationTitle("Nuova quota").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { if let studentID { store.addPaymentRecord(PaymentRecord(studentID: studentID, courseID: courseID, type: type, title: title, amount: amount, paidAmount: paidAmount, dueDate: dueDate, status: status, method: method)); dismiss() } }.disabled(studentID == nil || title.isEmpty) } } }
     }
 }
 
@@ -190,7 +191,7 @@ struct DocumentsOperationalView: View {
                     }.padding(.vertical, 4)
                 }
             }
-        }.navigationTitle("Documenti e certificati").toolbar { Button { showNew = true } label: { Image(systemName: "plus") } }.sheet(isPresented: $showNew) { DocumentEditorView() }
+        }.modernScreen().navigationTitle("Documenti e certificati").toolbar { Button { showNew = true } label: { Image(systemName: "plus") } }.sheet(isPresented: $showNew) { DocumentEditorView() }
     }
 }
 
@@ -211,7 +212,7 @@ private struct DocumentEditorView: View {
         DatePicker("Scadenza", selection: $expiryDate, displayedComponents: .date)
         Picker("Verifica", selection: $status) { ForEach(DocumentReviewStatus.allCases) { Text($0.rawValue).tag($0) } }
         Toggle("Foto/PDF allegato", isOn: $hasAttachment)
-    }.navigationTitle("Nuovo documento").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { if let studentID { store.addDocument(SchoolDocument(studentID: studentID, title: title, kind: kind, issueDate: issueDate, expiryDate: expiryDate, reviewStatus: status, hasAttachment: hasAttachment)); dismiss() } }.disabled(studentID == nil || title.isEmpty) } } } }
+    }.modernScreen().navigationTitle("Nuovo documento").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { if let studentID { store.addDocument(SchoolDocument(studentID: studentID, title: title, kind: kind, issueDate: issueDate, expiryDate: expiryDate, reviewStatus: status, hasAttachment: hasAttachment)); dismiss() } }.disabled(studentID == nil || title.isEmpty) } } } }
 }
 
 struct EventsOperationalView: View {
@@ -227,7 +228,7 @@ struct EventsOperationalView: View {
                     Text("\(event.participantIDs.count) partecipanti • €\(event.fee, specifier: "%.2f")").font(.caption).foregroundColor(.secondary)
                 }.padding(.vertical, 5)
             }
-        }.navigationTitle("Saggi ed eventi").toolbar { Button { showNew = true } label: { Image(systemName: "plus") } }.sheet(isPresented: $showNew) { EventEditorView() }
+        }.modernScreen().navigationTitle("Saggi ed eventi").toolbar { Button { showNew = true } label: { Image(systemName: "plus") } }.sheet(isPresented: $showNew) { EventEditorView() }
     }
 }
 
@@ -245,7 +246,7 @@ private struct EventEditorView: View {
         TextField("Titolo", text: $title); DatePicker("Data e ora", selection: $date, displayedComponents: [.date, .hourAndMinute]); TextField("Luogo", text: $location)
         Section("Corsi partecipanti") { ForEach(store.courses) { course in Toggle(course.title, isOn: Binding(get: { selectedCourses.contains(course.id) }, set: { isOn in if isOn { selectedCourses.insert(course.id) } else { selectedCourses.remove(course.id) } })) } }
         TextField("Quota", value: $fee, format: .number).keyboardType(.decimalPad); TextField("Costumi", text: $costume); TextField("Ordine esibizioni", text: $order)
-    }.navigationTitle("Nuovo evento").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { let participants = Set(selectedCourses.flatMap { store.courseEnrollments[$0] ?? [] }); store.addDanceEvent(DanceEvent(title: title, date: date, location: location, courseIDs: Array(selectedCourses), participantIDs: Array(participants), rehearsalDates: [], fee: fee, costumeNote: costume, performanceOrder: order)); dismiss() }.disabled(title.isEmpty || location.isEmpty) } } } }
+    }.modernScreen().navigationTitle("Nuovo evento").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Salva") { let participants = Set(selectedCourses.flatMap { store.courseEnrollments[$0] ?? [] }); store.addDanceEvent(DanceEvent(title: title, date: date, location: location, courseIDs: Array(selectedCourses), participantIDs: Array(participants), rehearsalDates: [], fee: fee, costumeNote: costume, performanceOrder: order)); dismiss() }.disabled(title.isEmpty || location.isEmpty) } } } }
 }
 
 struct StaffPermissionsView: View {
@@ -255,7 +256,7 @@ struct StaffPermissionsView: View {
             ForEach(store.schoolMembers.filter { $0.role == .secretary }) { member in
                 NavigationLink(member.name) { StaffPermissionEditor(member: member) }
             }
-        }.navigationTitle("Permessi segreteria")
+        }.modernScreen().navigationTitle("Permessi segreteria")
     }
 }
 
@@ -272,6 +273,6 @@ private struct StaffPermissionEditor: View {
             Toggle("Dati economici", isOn: $permissions.managePayments)
             Toggle("Documenti", isOn: $permissions.manageDocuments)
             Toggle("Comunicazioni", isOn: $permissions.sendAnnouncements)
-        }.navigationTitle(member.name).onAppear { permissions = store.permissions(for: member.id) }.onDisappear { store.setPermissions(permissions, for: member.id) }
+        }.modernScreen().navigationTitle(member.name).onAppear { permissions = store.permissions(for: member.id) }.onDisappear { store.setPermissions(permissions, for: member.id) }
     }
 }

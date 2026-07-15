@@ -1,0 +1,9 @@
+DanzUp Build 58 — Restyling completo
+
+- Identità grafica uniforme su tutte le schermate
+- Navigation bar e tab bar moderne con effetto materiale
+- Sfondo coordinato su liste, form e pagine di dettaglio
+- Card più eleganti, ombre leggere e bordi coerenti
+- Tema chiaro/scuro mantenuto
+- Funzioni e collegamenti della Build 57 invariati
+- Compatibile con Xcode 15 e iOS 16
