@@ -134,7 +134,19 @@ private struct FamilyProfileView: View {
                 Section("Profili collegati") {
                     let linked = store.linkedChildrenForCurrentParent()
                     if linked.isEmpty {
-                        ContentUnavailableView("Nessun figlio collegato", systemImage: "person.2.slash", description: Text("Invia una richiesta e attendi l’approvazione della scuola."))
+                        VStack(spacing: 10) {
+                            Image(systemName: "person.2.slash")
+                                .font(.system(size: 34, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            Text("Nessun figlio collegato")
+                                .font(.headline)
+                            Text("Invia una richiesta e attendi l’approvazione della scuola.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
                     } else {
                         ForEach(linked) { child in
                             HStack {
