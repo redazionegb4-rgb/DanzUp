@@ -74,9 +74,11 @@ struct CourseDetailView: View {
     @EnvironmentObject var store: AppStore
     let courseID: UUID
     @State private var showManageStudents = false
+    @State private var showManageTeachers = false
 
     private var course: DanceCourse? { store.courses.first { $0.id == courseID } }
     private var enrolledStudents: [Student] { store.studentsForCourse(courseID) }
+    private var assignedTeachers: [SchoolMember] { store.assignedTeachers(for: courseID) }
 
     var body: some View {
         Group {
@@ -97,6 +99,35 @@ struct CourseDetailView: View {
                                 Label("\(course.day) alle \(course.time)", systemImage: "calendar")
                                 Label(course.room, systemImage: "door.left.hand.open")
                                 Label("\(enrolledStudents.count) iscritti su \(course.capacity)", systemImage: "person.3.fill")
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        DZCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Insegnanti assegnati").font(.headline)
+                                    Spacer()
+                                    Button("Gestisci") { showManageTeachers = true }
+                                        .font(.subheadline.bold())
+                                }
+                                if assignedTeachers.isEmpty {
+                                    Text("Nessun insegnante assegnato")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    ForEach(assignedTeachers) { teacher in
+                                        HStack(spacing: 10) {
+                                            Image(systemName: "person.crop.circle.fill")
+                                                .foregroundStyle(Color.dzPurple)
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(teacher.name)
+                                                Text(teacher.email).font(.caption).foregroundStyle(.secondary)
+                                            }
+                                            Spacer()
+                                        }
+                                    }
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -157,6 +188,9 @@ struct CourseDetailView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .sheet(isPresented: $showManageStudents) {
                     ManageCourseStudentsView(courseID: course.id)
+                }
+                .sheet(isPresented: $showManageTeachers) {
+                    ManageCourseTeachersView(courseID: course.id)
                 }
             } else {
                 VStack(spacing: 10) { Image(systemName: "exclamationmark.triangle").font(.largeTitle); Text("Corso non disponibile").font(.headline) }.foregroundStyle(.secondary)
@@ -288,13 +322,13 @@ struct ManageCourseStudentsView: View {
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(student.name)
                                                 .foregroundStyle(.primary)
-                                            Text(isEnrolled ? "Iscritto a questo corso" : student.course)
+                                            Text(isEnrolled ? "Iscritto a questo corso" : store.coursesForStudent(student.id).isEmpty ? "Nessun corso" : "Già in \(store.coursesForStudent(student.id).count) corsi")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
                                         Spacer()
-                                        if !isEnrolled && student.course != "Nessun corso" {
-                                            Text("Sposta")
+                                        if !isEnrolled && !store.coursesForStudent(student.id).isEmpty {
+                                            Text("Aggiungi")
                                                 .font(.caption.bold())
                                                 .foregroundStyle(Color.dzPurple)
                                         }
@@ -307,7 +341,7 @@ struct ManageCourseStudentsView: View {
                     } header: {
                         Text("Tutti gli allievi")
                     } footer: {
-                        Text("Se un allievo è già assegnato a un altro corso, selezionandolo verrà spostato in questo corso.")
+                        Text("Ogni allievo può essere iscritto a più corsi. La selezione aggiunge o rimuove soltanto questo corso.")
                     }
                 }
             }
@@ -318,6 +352,73 @@ struct ManageCourseStudentsView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fine") { dismiss() }
                 }
+            }
+        }
+    }
+}
+
+
+struct ManageCourseTeachersView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    let courseID: UUID
+    @State private var search = ""
+
+    private var teachers: [SchoolMember] {
+        let values = store.schoolMembers.filter { $0.role == .teacher && $0.isActive }
+        guard !search.isEmpty else { return values }
+        return values.filter { $0.name.localizedCaseInsensitiveContains(search) || $0.email.localizedCaseInsensitiveContains(search) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    if teachers.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                .font(.largeTitle)
+                                .foregroundStyle(.secondary)
+                            Text("Nessun insegnante disponibile").font(.headline)
+                            Text("Crea prima un accesso insegnante dalla sezione Inviti e codici.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                    } else {
+                        ForEach(teachers) { teacher in
+                            let selected = store.assignedTeachers(for: courseID).contains(where: { $0.id == teacher.id })
+                            Button {
+                                store.toggleTeacher(teacher.id, for: courseID)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                                        .font(.title3)
+                                        .foregroundStyle(selected ? Color.dzPurple : Color.secondary)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(teacher.name).foregroundStyle(.primary)
+                                        Text(teacher.email).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                } header: {
+                    Text("Insegnanti")
+                } footer: {
+                    Text("Puoi assegnare più insegnanti allo stesso corso. Gli insegnanti vedranno soltanto i corsi loro assegnati.")
+                }
+            }
+            .navigationTitle("Assegna insegnanti")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $search, prompt: "Cerca insegnante")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Fine") { dismiss() } }
             }
         }
     }

@@ -13,6 +13,8 @@ final class AppStore: ObservableObject {
     @Published var students: [Student] = AppStore.demoStudents
     @Published var announcements: [Announcement] = AppStore.demoAnnouncements
     @Published var attendanceByCourse: [String: Set<UUID>] = [:]
+    @Published var courseEnrollments: [UUID: Set<UUID>] = [:]
+    @Published var teacherAssignments: [UUID: Set<UUID>] = [:]
     @Published var inviteCodes: [InviteCode] = AppStore.demoInviteCodes
     @Published var schoolMembers: [SchoolMember] = AppStore.demoMembers
     @Published var parentInvitations: [ParentInvitation] = []
@@ -21,12 +23,14 @@ final class AppStore: ObservableObject {
     @Published var linkedChildIDsByParent: [String: [UUID]] = [:]
     @Published var lastSavedAt: Date?
 
-    private let persistenceKey = "DanzUp.LocalData.v14"
+    private let persistenceKey = "DanzUp.LocalData.v15"
     private var isRestoring = false
 
     init() {
         restoreLocalData()
         ensureStudentFamilyCodes()
+        ensureCourseEnrollments()
+        ensureTeacherAssignments()
     }
 
     var trialDaysRemaining: Int {
@@ -250,22 +254,48 @@ final class AppStore: ObservableObject {
     }
 
     func studentsForCourse(_ courseID: UUID) -> [Student] {
-        guard let title = courses.first(where: { $0.id == courseID })?.title else { return [] }
-        return students.filter { $0.course == title }
+        let ids = courseEnrollments[courseID] ?? []
+        return students.filter { ids.contains($0.id) }
+    }
+
+    func coursesForStudent(_ studentID: UUID) -> [DanceCourse] {
+        courses.filter { courseEnrollments[$0.id, default: []].contains(studentID) }
     }
 
     func enrolledCount(for courseID: UUID) -> Int {
-        studentsForCourse(courseID).count
+        courseEnrollments[courseID]?.count ?? 0
+    }
+
+    func assignedTeachers(for courseID: UUID) -> [SchoolMember] {
+        let ids = teacherAssignments[courseID] ?? []
+        return schoolMembers.filter { $0.role == .teacher && ids.contains($0.id) }
+    }
+
+    func toggleTeacher(_ teacherID: UUID, for courseID: UUID) {
+        var ids = teacherAssignments[courseID] ?? []
+        if ids.contains(teacherID) { ids.remove(teacherID) } else { ids.insert(teacherID) }
+        teacherAssignments[courseID] = ids
+        if let courseIndex = courses.firstIndex(where: { $0.id == courseID }) {
+            let names = assignedTeachers(for: courseID).map(\.name)
+            courses[courseIndex].teacher = names.isEmpty ? "Da assegnare" : names.joined(separator: ", ")
+        }
+        saveLocalData()
     }
 
     func addCourse(_ course: DanceCourse) {
         courses.append(course)
+        courseEnrollments[course.id] = []
+        teacherAssignments[course.id] = []
         saveLocalData()
     }
 
     func deleteCourses(at offsets: IndexSet, from visibleCourses: [DanceCourse]) {
         let ids = offsets.compactMap { visibleCourses.indices.contains($0) ? visibleCourses[$0].id : nil }
         courses.removeAll { ids.contains($0.id) }
+        for id in ids {
+            courseEnrollments.removeValue(forKey: id)
+            teacherAssignments.removeValue(forKey: id)
+        }
         saveLocalData()
     }
 
@@ -279,25 +309,28 @@ final class AppStore: ObservableObject {
     }
 
     func assignStudent(_ studentID: UUID, toCourseID courseID: UUID) {
-        guard let studentIndex = students.firstIndex(where: { $0.id == studentID }),
+        guard students.contains(where: { $0.id == studentID }),
               let course = courses.first(where: { $0.id == courseID }) else { return }
-        students[studentIndex].course = course.title
+        courseEnrollments[courseID, default: []].insert(studentID)
+        if let studentIndex = students.firstIndex(where: { $0.id == studentID }), students[studentIndex].course == "Nessun corso" {
+            students[studentIndex].course = course.title
+        }
         saveLocalData()
     }
 
     func removeStudent(_ studentID: UUID, fromCourseID courseID: UUID) {
-        guard let studentIndex = students.firstIndex(where: { $0.id == studentID }),
-              let course = courses.first(where: { $0.id == courseID }),
-              students[studentIndex].course == course.title else { return }
-        students[studentIndex].course = "Nessun corso"
+        guard let course = courses.first(where: { $0.id == courseID }) else { return }
+        courseEnrollments[courseID]?.remove(studentID)
         attendanceByCourse[course.title]?.remove(studentID)
+        if let studentIndex = students.firstIndex(where: { $0.id == studentID }) {
+            let remaining = coursesForStudent(studentID)
+            students[studentIndex].course = remaining.first?.title ?? "Nessun corso"
+        }
         saveLocalData()
     }
 
     func isStudent(_ studentID: UUID, enrolledIn courseID: UUID) -> Bool {
-        guard let student = students.first(where: { $0.id == studentID }),
-              let course = courses.first(where: { $0.id == courseID }) else { return false }
-        return student.course == course.title
+        courseEnrollments[courseID, default: []].contains(studentID)
     }
 
     func deleteStudents(at offsets: IndexSet, from visibleStudents: [Student]) {
@@ -305,6 +338,9 @@ final class AppStore: ObservableObject {
         students.removeAll { ids.contains($0.id) }
         for key in Array(attendanceByCourse.keys) {
             attendanceByCourse[key]?.subtract(ids)
+        }
+        for courseID in Array(courseEnrollments.keys) {
+            courseEnrollments[courseID]?.subtract(ids)
         }
         saveLocalData()
     }
@@ -318,6 +354,25 @@ final class AppStore: ObservableObject {
 
     func isPresent(studentID: UUID, courseTitle: String) -> Bool {
         attendanceByCourse[courseTitle, default: []].contains(studentID)
+    }
+
+    private func ensureCourseEnrollments() {
+        guard courseEnrollments.isEmpty else { return }
+        for student in students {
+            if let course = courses.first(where: { $0.title == student.course }) {
+                courseEnrollments[course.id, default: []].insert(student.id)
+            }
+        }
+        saveLocalData()
+    }
+
+    private func ensureTeacherAssignments() {
+        guard teacherAssignments.isEmpty else { return }
+        for course in courses {
+            let matching = schoolMembers.filter { $0.role == .teacher && course.teacher.localizedCaseInsensitiveContains($0.name) }
+            teacherAssignments[course.id] = Set(matching.map(\.id))
+        }
+        saveLocalData()
     }
 
     func createInvite(role: UserRole, maxUses: Int) -> InviteCode {
@@ -370,12 +425,16 @@ final class AppStore: ObservableObject {
         students = Self.demoStudents
         announcements = Self.demoAnnouncements
         attendanceByCourse = [:]
+        courseEnrollments = [:]
+        teacherAssignments = [:]
         inviteCodes = Self.demoInviteCodes
         schoolMembers = Self.demoMembers
         parentInvitations = []
         childLinkRequests = []
         linkedChildIDsByParent = [:]
         ensureStudentFamilyCodes()
+        ensureCourseEnrollments()
+        ensureTeacherAssignments()
         trialStart = Date()
         saveLocalData()
     }
@@ -392,6 +451,8 @@ final class AppStore: ObservableObject {
             students: students,
             announcements: announcements,
             attendanceByCourse: attendanceByCourse.mapValues(Array.init),
+            courseEnrollments: courseEnrollments.mapValues(Array.init),
+            teacherAssignments: teacherAssignments.mapValues(Array.init),
             inviteCodes: inviteCodes,
             schoolMembers: schoolMembers,
             parentInvitations: parentInvitations,
@@ -422,6 +483,8 @@ final class AppStore: ObservableObject {
             students = snapshot.students
             announcements = snapshot.announcements
             attendanceByCourse = snapshot.attendanceByCourse.mapValues(Set.init)
+            courseEnrollments = (snapshot.courseEnrollments ?? [:]).mapValues(Set.init)
+            teacherAssignments = (snapshot.teacherAssignments ?? [:]).mapValues(Set.init)
             inviteCodes = snapshot.inviteCodes ?? Self.demoInviteCodes
             schoolMembers = snapshot.schoolMembers ?? Self.demoMembers
             parentInvitations = snapshot.parentInvitations ?? []
@@ -442,6 +505,8 @@ final class AppStore: ObservableObject {
         var students: [Student]
         var announcements: [Announcement]
         var attendanceByCourse: [String: [UUID]]
+        var courseEnrollments: [UUID: [UUID]]?
+        var teacherAssignments: [UUID: [UUID]]?
         var inviteCodes: [InviteCode]?
         var schoolMembers: [SchoolMember]?
         var parentInvitations: [ParentInvitation]?

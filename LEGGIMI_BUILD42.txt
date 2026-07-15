@@ -1,0 +1,14 @@
+DanzUp Build 42
+
+Novità:
+- Un allievo può essere iscritto a più corsi senza essere spostato dal precedente.
+- Gestione iscritti aggiornata con aggiunta/rimozione indipendente per ogni corso.
+- Dalla scheda corso si possono assegnare più insegnanti reali già collegati alla scuola.
+- Elenco insegnanti assegnati visibile nella scheda corso.
+- Conteggi iscritti calcolati dalle associazioni reali.
+- Associazioni allievi/corsi e insegnanti/corsi salvate localmente.
+- Pulizia automatica delle associazioni quando si elimina un corso o un allievo.
+
+Compatibilità: Xcode 15, iOS 16+
+Versione: 1.0
+Build: 42
