@@ -1,0 +1,9 @@
+DanzUp Build 47 — Restyling Home
+
+- Home completamente ridisegnata per scuola, staff e famiglia.
+- Nuovo header moderno con l'icona ufficiale DanzUp.
+- Card riepilogo, attività urgenti e azioni rapide riprogettate.
+- Nuova visualizzazione delle lezioni della giornata.
+- Migliore gerarchia, spaziatura, leggibilità e supporto tema scuro.
+- Tutti i collegamenti e le funzioni della Build 46 sono stati mantenuti.
+- Compatibile con Xcode 15 e iOS 16.
