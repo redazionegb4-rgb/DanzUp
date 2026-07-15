@@ -2,71 +2,153 @@ import SwiftUI
 
 struct CoursesView: View {
     @EnvironmentObject var store: AppStore
-    @State private var showAdd = false
     @State private var search = ""
+    @State private var showAdd = false
 
-    var filtered: [DanceCourse] {
-        search.isEmpty ? store.courses : store.courses.filter { $0.title.localizedCaseInsensitiveContains(search) || $0.teacher.localizedCaseInsensitiveContains(search) }
+    private var filtered: [DanceCourse] {
+        search.isEmpty ? store.courses : store.courses.filter {
+            $0.title.localizedCaseInsensitiveContains(search) ||
+            $0.teacher.localizedCaseInsensitiveContains(search) ||
+            $0.style.localizedCaseInsensitiveContains(search)
+        }
     }
 
+    private var totalEnrolled: Int { store.courses.reduce(0) { $0 + store.enrolledCount(for: $1.id) } }
+    private var availablePlaces: Int { store.courses.reduce(0) { $0 + max(0, $1.capacity - store.enrolledCount(for: $1.id)) } }
+
     var body: some View {
-        List {
-            ForEach(filtered) { course in
-                NavigationLink {
-                    CourseDetailView(courseID: course.id)
-                } label: {
-                    CourseRow(course: course)
-                }
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .swipeActions {
-                    Button(role: .destructive) {
-                        if let index = filtered.firstIndex(where: { $0.id == course.id }) {
-                            store.deleteCourses(at: IndexSet(integer: index), from: filtered)
+        ZStack(alignment: .bottomTrailing) {
+            ScreenBackground()
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    DZHeroHeader(
+                        eyebrow: "Programmazione",
+                        title: "Corsi",
+                        subtitle: "Orari, insegnanti, sale e iscritti con una vista più chiara.",
+                        systemImage: "figure.dance",
+                        accent: .dzFuchsia
+                    )
+
+                    HStack(spacing: 10) {
+                        DZMetricTile(value: "\(store.courses.count)", label: "Corsi attivi", icon: "rectangle.stack.fill", color: .dzFuchsia)
+                        DZMetricTile(value: "\(totalEnrolled)", label: "Iscrizioni", icon: "person.3.fill", color: .dzPurple)
+                        DZMetricTile(value: "\(availablePlaces)", label: "Posti liberi", icon: "chair.fill", color: .dzMint)
+                    }
+
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField("Cerca corso, stile o insegnante", text: $search)
+                        if !search.isEmpty {
+                            Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
                         }
-                    } label: { Label("Elimina", systemImage: "trash") }
+                    }
+                    .padding(.horizontal, 15)
+                    .frame(height: 50)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(Color.primary.opacity(0.06)))
+
+                    if filtered.isEmpty {
+                        DZCard {
+                            DZEmptyState(
+                                icon: "figure.dance",
+                                title: search.isEmpty ? "Nessun corso" : "Nessun risultato",
+                                message: search.isEmpty ? "Crea il primo corso, scegli orario e sala e poi assegna allievi e insegnanti." : "Prova a modificare la ricerca.",
+                                actionTitle: search.isEmpty ? "Crea corso" : nil,
+                                action: search.isEmpty ? { showAdd = true } : nil
+                            )
+                        }
+                    } else {
+                        VStack(spacing: 14) {
+                            ForEach(Array(filtered.enumerated()), id: \.element.id) { index, course in
+                                NavigationLink { CourseDetailView(courseID: course.id) } label: {
+                                    CourseModernCard(course: course, index: index)
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        if let row = filtered.firstIndex(where: { $0.id == course.id }) {
+                                            store.deleteCourses(at: IndexSet(integer: row), from: filtered)
+                                        }
+                                    } label: { Label("Elimina", systemImage: "trash") }
+                                }
+                            }
+                        }
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 100)
             }
+            DZFloatingAddButton { showAdd = true }.padding(22)
         }
-        .listStyle(.plain)
-        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Corsi")
-        .searchable(text: $search, prompt: "Cerca corso o insegnante")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button { showAdd = true } label: { Image(systemName: "plus.circle.fill") }
-            }
-        }
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAdd) { AddCourseView() }
     }
 }
 
-private struct CourseRow: View {
+private struct CourseModernCard: View {
     @EnvironmentObject var store: AppStore
     let course: DanceCourse
+    let index: Int
 
     private var enrolled: Int { store.enrolledCount(for: course.id) }
+    private var progress: Double { Double(enrolled) / Double(max(course.capacity, 1)) }
+    private var accent: Color {
+        [Color.dzPurple, .dzFuchsia, .dzSky, .dzMint, .dzOrange][index % 5]
+    }
 
     var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "figure.dance")
-                .font(.title2)
-                .foregroundStyle(.white)
-                .frame(width: 54, height: 54)
-                .background(BrandGradient())
-                .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
-            VStack(alignment: .leading, spacing: 5) {
-                Text(course.title).font(.headline)
-                Text("\(course.day) • \(course.time) • \(course.room)").font(.caption).foregroundStyle(.secondary)
-                ProgressView(value: Double(enrolled), total: Double(max(course.capacity, 1))).tint(Color.dzPurple)
+        VStack(spacing: 0) {
+            ZStack(alignment: .bottomLeading) {
+                LinearGradient(colors: [Color.dzNavy, accent], startPoint: .topLeading, endPoint: .bottomTrailing)
+                Circle().fill(Color.white.opacity(0.11)).frame(width: 110, height: 110).offset(x: 255, y: -28)
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(course.style.uppercased())
+                            .font(.caption2.weight(.heavy)).tracking(1.1).foregroundStyle(.white.opacity(0.7))
+                        Text(course.title)
+                            .font(.title3.weight(.heavy)).foregroundStyle(.white)
+                        Text(course.teacher.isEmpty ? "Insegnante da assegnare" : course.teacher)
+                            .font(.caption).foregroundStyle(.white.opacity(0.78))
+                    }
+                    Spacer()
+                    Image(systemName: "figure.dance")
+                        .font(.system(size: 32, weight: .semibold)).foregroundStyle(.white.opacity(0.9))
+                }
+                .padding(18)
             }
-            Spacer()
-            Text("\(enrolled)/\(course.capacity)").font(.caption.bold()).foregroundStyle(.secondary)
+            .frame(height: 128)
+
+            VStack(spacing: 13) {
+                HStack(spacing: 18) {
+                    Label(course.day, systemImage: "calendar").lineLimit(1)
+                    Label(course.time, systemImage: "clock.fill")
+                    Label(course.room, systemImage: "door.left.hand.open").lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text("Capienza").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(enrolled) / \(course.capacity)").font(.caption.bold())
+                        }
+                        ProgressView(value: progress).tint(accent)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption.bold()).foregroundStyle(.tertiary).padding(.leading, 5)
+                }
+            }
+            .padding(16)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
         }
-        .padding(14)
-        .background(Color(uiColor: .secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .padding(.vertical, 3)
+        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 25, style: .continuous).stroke(Color.primary.opacity(0.05)))
+        .shadow(color: accent.opacity(0.13), radius: 18, y: 9)
     }
 }
 

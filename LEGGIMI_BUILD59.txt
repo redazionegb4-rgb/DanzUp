@@ -1,0 +1,8 @@
+DanzUp Build 59 – Redesign reale
+
+- Nuovo design system con hero dinamiche, metriche, stati vuoti e pulsanti flottanti.
+- Allievi completamente ridisegnati: dashboard, ricerca personalizzata, card, indicatori e scheda profilo.
+- Corsi completamente ridisegnati: copertine differenziate, capienza, stile, orari e ricerca.
+- Animazioni leggere e gerarchie grafiche più marcate.
+- Tema chiaro/scuro e compatibilità iOS 16 / Xcode 15.
+- Build 59.

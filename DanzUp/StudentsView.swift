@@ -5,62 +5,144 @@ struct StudentsView: View {
     @State private var search = ""
     @State private var showAdd = false
 
-    var filtered: [Student] {
-        search.isEmpty ? store.students : store.students.filter { $0.name.localizedCaseInsensitiveContains(search) || $0.course.localizedCaseInsensitiveContains(search) }
+    private var filtered: [Student] {
+        search.isEmpty ? store.students : store.students.filter {
+            $0.name.localizedCaseInsensitiveContains(search) ||
+            store.coursesForStudent($0.id).contains { $0.title.localizedCaseInsensitiveContains(search) }
+        }
     }
 
+    private var lateCount: Int { store.students.filter { $0.paymentStatus == .late }.count }
+    private var medicalCount: Int { store.students.filter { $0.medicalStatus != .valid }.count }
+
     var body: some View {
-        List {
-            ForEach(filtered) { student in
-                NavigationLink {
-                    StudentDetailView(studentID: student.id)
-                } label: {
-                    HStack(spacing: 14) {
-                        Text(initials(student.name))
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(width: 50, height: 50)
-                            .background(BrandGradient())
-                            .clipShape(Circle())
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(student.name).font(.headline)
-                            Text(student.course).font(.caption).foregroundStyle(.secondary)
-                            HStack(spacing: 7) {
-                                StatusPill(text: student.paymentStatus.rawValue, color: student.paymentStatus.color)
-                                StatusPill(text: "Pres. \(student.attendanceRate)%", color: Color.dzPurple)
+        ZStack(alignment: .bottomTrailing) {
+            ScreenBackground()
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    DZHeroHeader(
+                        eyebrow: "Gestione scuola",
+                        title: "Allievi",
+                        subtitle: "Profili, iscrizioni, famiglie e stato amministrativo in un solo posto.",
+                        systemImage: "person.3.fill",
+                        accent: .dzPurple
+                    )
+
+                    HStack(spacing: 10) {
+                        DZMetricTile(value: "\(store.students.count)", label: "Totali", icon: "person.2.fill", color: .dzPurple)
+                        DZMetricTile(value: "\(lateCount)", label: "Quote scadute", icon: "creditcard.fill", color: .red)
+                        DZMetricTile(value: "\(medicalCount)", label: "Certificati", icon: "cross.case.fill", color: .orange)
+                    }
+
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        TextField("Cerca nome o corso", text: $search)
+                            .textInputAutocapitalization(.words)
+                        if !search.isEmpty {
+                            Button { search = "" } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                             }
                         }
                     }
-                    .padding(.vertical, 5)
-                }
-                .swipeActions {
-                    Button(role: .destructive) {
-                        if let index = filtered.firstIndex(where: { $0.id == student.id }) {
-                            store.deleteStudents(at: IndexSet(integer: index), from: filtered)
-                        }
-                    } label: { Label("Elimina", systemImage: "trash") }
-                }
-            }
-        }
-        .modernScreen()
-        .navigationTitle("Allievi")
-        .searchable(text: $search, prompt: "Cerca allievo o corso")
-        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { showAdd = true } label: { Image(systemName: "person.badge.plus") } } }
-        .sheet(isPresented: $showAdd) { AddStudentView() }
-    }
+                    .padding(.horizontal, 15)
+                    .frame(height: 50)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(Color.primary.opacity(0.06)))
 
-    private func initials(_ name: String) -> String {
-        name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()
+                    if filtered.isEmpty {
+                        DZCard {
+                            DZEmptyState(
+                                icon: "person.crop.circle.badge.plus",
+                                title: search.isEmpty ? "Nessun allievo" : "Nessun risultato",
+                                message: search.isEmpty ? "Crea il primo profilo e assegnalo ai corsi della scuola." : "Prova con un nome o un corso diverso.",
+                                actionTitle: search.isEmpty ? "Aggiungi allievo" : nil,
+                                action: search.isEmpty ? { showAdd = true } : nil
+                            )
+                        }
+                    } else {
+                        VStack(spacing: 12) {
+                            ForEach(filtered) { student in
+                                NavigationLink {
+                                    StudentDetailView(studentID: student.id)
+                                } label: {
+                                    StudentModernCard(student: student)
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        if let index = filtered.firstIndex(where: { $0.id == student.id }) {
+                                            store.deleteStudents(at: IndexSet(integer: index), from: filtered)
+                                        }
+                                    } label: { Label("Elimina", systemImage: "trash") }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 100)
+            }
+            DZFloatingAddButton { showAdd = true }
+                .padding(22)
+        }
+        .navigationTitle("Allievi")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showAdd) { AddStudentView() }
     }
 }
 
-private struct StatusPill: View {
+private struct StudentModernCard: View {
+    @EnvironmentObject var store: AppStore
+    let student: Student
+
+    private var courses: [DanceCourse] { store.coursesForStudent(student.id) }
+    private var initials: String {
+        student.name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(LinearGradient(colors: [Color.dzPurple, Color.dzFuchsia], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 58, height: 58)
+                Text(initials).font(.headline.weight(.heavy)).foregroundStyle(.white)
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                HStack {
+                    Text(student.name).font(.headline).foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.tertiary)
+                }
+                Text(courses.isEmpty ? "Nessun corso assegnato" : courses.map(\.title).joined(separator: " • "))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                HStack(spacing: 8) {
+                    DZStatusChip(text: student.paymentStatus.rawValue, color: student.paymentStatus.color, icon: "creditcard.fill")
+                    DZStatusChip(text: student.medicalStatus.rawValue, color: student.medicalStatus.color, icon: "cross.case.fill")
+                }
+            }
+            DZProgressRing(value: Double(student.attendanceRate) / 100, color: .dzPurple, text: "\(student.attendanceRate)%")
+        }
+        .padding(15)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 23, style: .continuous).stroke(Color.primary.opacity(0.055)))
+        .shadow(color: .black.opacity(0.055), radius: 14, y: 7)
+    }
+}
+
+private struct DZStatusChip: View {
     let text: String
     let color: Color
+    let icon: String
     var body: some View {
-        Text(text).font(.caption2.bold()).foregroundStyle(color)
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(color.opacity(0.1)).clipShape(Capsule())
+        Label(text, systemImage: icon)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.10), in: Capsule())
     }
 }
 
@@ -74,58 +156,112 @@ struct StudentDetailView: View {
     var body: some View {
         Group {
             if let student {
-                List {
-                    Section {
-                        HStack(spacing: 16) {
-                            Image(systemName: "person.crop.circle.fill").font(.system(size: 64)).foregroundStyle(Color.dzPurple)
-                            VStack(alignment: .leading) {
-                                Text(student.name).font(.title2.bold())
-                                Text("\(student.age) anni • \(student.course)").foregroundStyle(.secondary)
-                            }
-                        }.padding(.vertical, 8)
-                    }
-                    Section("Situazione") {
-                        LabeledContent("Pagamento", value: student.paymentStatus.rawValue)
-                        LabeledContent("Certificato", value: student.medicalStatus.rawValue)
-                        LabeledContent("Presenze", value: "\(student.attendanceRate)%")
-                    }
-                    Section("Genitori e tutori") {
-                        let guardians = store.parentInvitations(for: student.id)
-                        if guardians.isEmpty {
-                            Text("Nessun genitore collegato").foregroundStyle(.secondary)
-                        } else {
-                            ForEach(guardians) { guardian in
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(guardian.name).font(.headline)
-                                    Text("\(guardian.relationship) • \(guardian.email)").font(.caption).foregroundStyle(.secondary)
-                                    HStack {
-                                        Text(guardian.isActive ? "Invito da attivare" : "Account attivato")
-                                            .font(.caption2.bold())
-                                            .foregroundStyle(guardian.isActive ? .orange : .green)
-                                        Spacer()
-                                        Text(guardian.code).font(.caption.monospaced()).foregroundStyle(Color.dzPurple)
+                ScrollView {
+                    VStack(spacing: 18) {
+                        StudentProfileHero(student: student)
+
+                        HStack(spacing: 10) {
+                            DZMetricTile(value: "\(student.attendanceRate)%", label: "Presenze", icon: "checkmark.circle.fill", color: .dzMint)
+                            DZMetricTile(value: "\(store.coursesForStudent(student.id).count)", label: "Corsi", icon: "figure.dance", color: .dzPurple)
+                            DZMetricTile(value: "\(store.parentInvitations(for: student.id).count)", label: "Tutori", icon: "figure.2.and.child.holdinghands", color: .dzSky)
+                        }
+
+                        DZCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                SectionTitle("Corsi frequentati", subtitle: "Tutte le iscrizioni attive")
+                                if store.coursesForStudent(student.id).isEmpty {
+                                    DZEmptyState(icon: "figure.dance", title: "Nessun corso", message: "Assegna l’allievo dalla scheda di un corso.")
+                                } else {
+                                    ForEach(store.coursesForStudent(student.id)) { course in
+                                        NavigationLink { CourseDetailView(courseID: course.id) } label: {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: "figure.dance")
+                                                    .foregroundStyle(.white)
+                                                    .frame(width: 40, height: 40)
+                                                    .background(Color.dzPurple, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                                                VStack(alignment: .leading, spacing: 3) {
+                                                    Text(course.title).font(.subheadline.bold()).foregroundStyle(.primary)
+                                                    Text("\(course.day) • \(course.time) • \(course.room)").font(.caption).foregroundStyle(.secondary)
+                                                }
+                                                Spacer()
+                                                Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.tertiary)
+                                            }
+                                            .padding(.vertical, 3)
+                                        }
                                     }
-                                }
-                                .swipeActions {
-                                    Button(role: .destructive) { store.unlinkParentInvitation(guardian.id, from: student.id) } label: { Label("Scollega", systemImage: "link.badge.minus") }
                                 }
                             }
                         }
-                        Button { showParentManager = true } label: { Label("Aggiungi o collega genitore", systemImage: "person.2.badge.plus") }
+
+                        DZCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                HStack {
+                                    SectionTitle("Genitori e tutori", subtitle: "Accessi autorizzati")
+                                    Button("Gestisci") { showParentManager = true }.font(.subheadline.bold())
+                                }
+                                let guardians = store.parentInvitations(for: student.id)
+                                if guardians.isEmpty {
+                                    DZEmptyState(icon: "person.crop.circle.badge.plus", title: "Nessun tutore", message: "Aggiungi un genitore o un tutore e invia il codice personale.", actionTitle: "Aggiungi", action: { showParentManager = true })
+                                } else {
+                                    ForEach(guardians) { guardian in
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "person.crop.circle.fill").font(.title2).foregroundStyle(Color.dzSky)
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text(guardian.name).font(.subheadline.bold())
+                                                Text("\(guardian.relationship) • \(guardian.email)").font(.caption).foregroundStyle(.secondary)
+                                            }
+                                            Spacer()
+                                            Circle().fill(guardian.isActive ? Color.orange : Color.green).frame(width: 9, height: 9)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    Section("Azioni rapide") {
-                        NavigationLink { PaymentsManagementView(initialFilter: student.paymentStatus == .late ? "Scadute" : "Tutte") } label: { Label("Registra pagamento", systemImage: "eurosign.circle") }
-                        NavigationLink { OwnerAttendanceView(initialCourseID: store.courseID(named: student.course)) } label: { Label("Segna presenza", systemImage: "checkmark.circle") }
-                        NavigationLink { CommunicationsManagementView(openComposerOnAppear: true) } label: { Label("Invia comunicazione", systemImage: "paperplane") }
-                        NavigationLink { MedicalCertificatesView(showOnlyAlerts: false) } label: { Label("Gestisci certificato", systemImage: "cross.case.fill") }
-                    }
+                    .padding(16)
+                    .padding(.bottom, 30)
                 }
-                .navigationTitle("Scheda allievo")
+                .background(ScreenBackground())
+                .navigationTitle(student.name)
+                .navigationBarTitleDisplayMode(.inline)
                 .sheet(isPresented: $showParentManager) { ParentGuardianManagerView(studentID: student.id) }
             } else {
-                VStack(spacing: 10) { Image(systemName: "person.crop.circle.badge.exclamationmark").font(.largeTitle); Text("Allievo non disponibile").font(.headline) }.foregroundStyle(.secondary)
+                DZEmptyState(icon: "exclamationmark.triangle", title: "Allievo non disponibile", message: "Il profilo potrebbe essere stato eliminato.")
             }
         }
+    }
+}
+
+private struct StudentProfileHero: View {
+    let student: Student
+    private var initials: String { student.name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined() }
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            BrandGradient()
+            Circle().fill(Color.white.opacity(0.10)).frame(width: 160, height: 160).offset(x: 230, y: -45)
+            HStack(spacing: 17) {
+                ZStack {
+                    Circle().fill(Color.white.opacity(0.17)).frame(width: 82, height: 82)
+                    Text(initials).font(.title.weight(.heavy)).foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(student.name).font(.title2.weight(.heavy)).foregroundStyle(.white)
+                    Text("\(student.age) anni").foregroundStyle(.white.opacity(0.78))
+                    HStack(spacing: 7) {
+                        Text(student.paymentStatus.rawValue)
+                        Text("•")
+                        Text(student.medicalStatus.rawValue)
+                    }
+                    .font(.caption.bold())
+                    .foregroundStyle(.white.opacity(0.86))
+                }
+                Spacer()
+            }
+            .padding(22)
+        }
+        .frame(height: 170)
+        .clipShape(RoundedRectangle(cornerRadius: 29, style: .continuous))
+        .shadow(color: Color.dzPurple.opacity(0.25), radius: 20, y: 12)
     }
 }
 
